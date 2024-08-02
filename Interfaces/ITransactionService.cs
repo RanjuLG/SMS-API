@@ -1,0 +1,17 @@
+﻿using SMS.Enums;
+using SMS.Models;
+using System.Collections.Generic;
+
+namespace SMS.Interfaces
+{
+    public interface ITransactionService
+    {
+        IList<Transaction> GetAllTransactions();
+        Transaction GetTransactionById(int transactionId);
+        List<Transaction> GetTransactionsByIds(List<int> transactionIds);
+        void CreateTransaction(Transaction transaction);
+        void UpdateTransaction(Transaction transaction);
+        void DeleteTransaction(int transactionId);
+        void DeleteTransactions(IEnumerable<int> transactionIds);
+    }
+}

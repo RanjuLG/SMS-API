@@ -1,0 +1,79 @@
+﻿namespace SMS.Models.DTO
+{
+    namespace SMS.Models.DTO
+    {
+        public class InvoiceDTO
+        {
+            public int InvoiceId { get; set; }
+            public string InvoiceNo { get; set; }
+            public DateTime DateGenerated { get; set; }
+            public string CustomerNIC { get; set; }
+            public string ItemDescription { get; set; }
+            public decimal Amount { get; set; }
+            public bool PaymentStatus { get; set; }
+            public decimal SubTotal { get; set; }
+            public decimal Interest { get; set; }
+            public decimal TotalAmount { get; set; }
+           
+            
+        }
+        public class GetInvoiceDTO
+        {
+            public int InvoiceId { get; set; }
+            public string InvoiceNo { get; set; }
+            public int TransactionId { get; set; }
+            public string CustomerNIC { get; set; }
+            public decimal? TotalAmount { get; set; }
+            public DateTime? DateGenerated { get; set; }
+            public int? Status { get; set; }
+
+
+
+        }
+
+        public class CreateInvoiceDTO
+        {
+            public CreateCustomerDTO Customer { get; set; }
+           
+            public CustomItemDTO[] Items { get; set; }
+
+            public DateTime Date { get; set; }
+            public bool PaymentStatus { get; set; }
+           
+            public decimal SubTotal { get; set; }
+            public decimal Interest { get; set; }
+            public decimal TotalAmount { get; set; }
+
+
+        }
+
+        public class CustomItemDTO
+        {
+
+            public string? ItemDescription { get; set; }
+            public decimal? ItemCaratage { get; set; }
+            public decimal? ItemGoldWeight { get; set; }
+            public decimal? ItemValue { get; set; }
+
+        }
+
+
+        public class UpdateInvoiceDTO
+        {
+            public string InvoiceNo { get; set; }
+            public string CustomerName { get; set; }
+            public string CustomerAddress { get; set; }
+            public string CustomerNIC { get; set; }
+            public string ContactNo { get; set; }
+            public string ItemDescription { get; set; }
+            public decimal Amount { get; set; }
+            public DateTime Date { get; set; }
+            public bool PaymentStatus { get; set; }
+            public decimal TotalAmount { get; set; }
+            public decimal TotalGoldWeight { get; set; }
+            public int Quantity { get; set; }
+            public decimal SubTotal { get; set; }
+            public decimal Interest { get; set; }
+        }
+    }
+}
