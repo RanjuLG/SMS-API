@@ -211,5 +211,29 @@ namespace SMS.Controllers
 
             return Ok();
         }
+
+
+        [HttpGet("customer/{customerNIC}")]
+        public ActionResult<IEnumerable<GetInvoiceDTO>> GetInvoicesByCustomerNIC(string customerNIC)
+        {
+            try
+            {
+                var customer = _customerService.GetCustomerByNIC(customerNIC);
+                if (customer == null)
+                {
+                    return NotFound("Customer not found.");
+                }
+
+                var invoices = _invoiceService.GetInvoicesByCustomerId(customer.CustomerId);
+                var invoiceDTOs = _mapper.Map<IEnumerable<GetInvoiceDTO>>(invoices);
+
+                return Ok(invoiceDTOs);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception
+                return StatusCode(500, "Internal server error");
+            }
+        }
     }
 }

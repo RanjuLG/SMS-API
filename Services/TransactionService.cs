@@ -83,6 +83,12 @@ namespace SMS.Services
             _dbContext.Save();
         }
 
+        public IEnumerable<Transaction> GetTransactionsByCustomerId(int customerId)
+        {
+            return _dbContext.Get<Transaction>(t => t.CustomerId == customerId && t.DeletedAt == null).ToList();
+        }
+
+
 
 
     }

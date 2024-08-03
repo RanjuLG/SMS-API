@@ -67,5 +67,11 @@ namespace SMS.Services
             }
             _dbContext.Save();
         }
+
+        public IEnumerable<Item> GetItemsByCustomerId(int customerId)
+        {
+            return _dbContext.Get<Item>(i => i.CustomerId == customerId && i.DeletedAt == null).ToList();
+        }
+
     }
 }
