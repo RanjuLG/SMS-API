@@ -14,7 +14,7 @@ namespace SMS.Services
         private readonly IRepository _dbContext;
         private readonly ITransactionService _transactionService;
 
-        public InvoiceService(IRepository dbContext,ITransactionService transactionService)
+        public InvoiceService(IRepository dbContext, ITransactionService transactionService)
         {
             _dbContext = dbContext;
             _transactionService = transactionService;
@@ -22,23 +22,22 @@ namespace SMS.Services
 
         public IList<Invoice> GetAllInvoices()
         {
-            var invoices = _dbContext.Get<Invoice>(i => i.DeletedAt == null).Include(i => i.Transaction).ToList();
-
+            var invoices = _dbContext.Get<Invoice>(i => i.DeletedAt == null)
+                .Include(i => i.Transaction)
+                .ToList();
 
             return invoices;
-         
         }
 
         public IList<GetInvoiceDTO> GetInvoices()
         {
-            List<GetInvoiceDTO> invoices = [];
-
+            var invoices = new List<GetInvoiceDTO>();
             var invoices_ = _dbContext.Get<Invoice>(i => i.DeletedAt == null).ToList();
 
             foreach (var invoice_ in invoices_)
             {
                 var transaction = _transactionService.GetTransactionById(invoice_.TransactionId);
-      
+
                 var invoice = new GetInvoiceDTO
                 {
                     InvoiceId = invoice_.InvoiceId,
@@ -53,72 +52,59 @@ namespace SMS.Services
                 invoices.Add(invoice);
             }
 
-
             return invoices;
-
         }
 
         public GetInvoiceDTO GetInvoiceById(int invoiceId)
         {
-            List<GetInvoiceDTO> invoices = [];
-
             var invoice_ = _dbContext.GetById<Invoice>(invoiceId);
+            if (invoice_ == null)
+            {
+                return null;
+            }
 
-             var transaction = _transactionService.GetTransactionById(invoice_.TransactionId);
+            var transaction = _transactionService.GetTransactionById(invoice_.TransactionId);
 
-                var invoice = new GetInvoiceDTO
-                {
-                    InvoiceId = invoice_.InvoiceId,
-                    InvoiceNo = invoice_.InvoiceNo,
-                    TransactionId = transaction.TransactionId,
-                    CustomerNIC = transaction.Customer?.CustomerNIC,
-                    TotalAmount = transaction.TotalAmount,
-                    DateGenerated = invoice_.DateGenerated,
-                    Status = invoice_.Status,
-                };
-
-                invoices.Add(invoice);
-            
-
+            var invoice = new GetInvoiceDTO
+            {
+                InvoiceId = invoice_.InvoiceId,
+                InvoiceNo = invoice_.InvoiceNo,
+                TransactionId = transaction.TransactionId,
+                CustomerNIC = transaction.Customer?.CustomerNIC,
+                TotalAmount = transaction.TotalAmount,
+                DateGenerated = invoice_.DateGenerated,
+                Status = invoice_.Status,
+            };
 
             return invoice;
         }
 
         public void CreateInvoice(Invoice invoice)
         {
-            _dbContext.Create<Invoice>(invoice);
+            _dbContext.Create(invoice);
             _dbContext.Save();
         }
 
         public void UpdateInvoice(Invoice invoice)
         {
             invoice.UpdatedAt = DateTime.Now;
-            _dbContext.Update<Invoice>(invoice);
+            _dbContext.Update(invoice);
             _dbContext.Save();
         }
 
         public void DeleteInvoice(int invoiceId)
         {
-           
-
-            
             var invoice = _dbContext.GetById<Invoice>(invoiceId);
+            if (invoice == null) return;
 
-            Transaction transaction = null;
-            if (invoice != null) 
-            {
-                transaction = _dbContext.GetById<Transaction>(invoice.TransactionId);
-            
-            }
-           
-            if (invoice != null && transaction != null)
-            {
-                invoice.DeletedAt = DateTime.Now;
-                transaction.DeletedAt = DateTime.Now;
-                _dbContext.Update<Invoice>(invoice);
-                _dbContext.Update<Transaction>(transaction);
-                _dbContext.Save();
-            }
+            var transaction = _dbContext.GetById<Transaction>(invoice.TransactionId);
+            if (transaction == null) return;
+
+            invoice.DeletedAt = DateTime.Now;
+            transaction.DeletedAt = DateTime.Now;
+            _dbContext.Update(invoice);
+            _dbContext.Update(transaction);
+            _dbContext.Save();
         }
 
         public void DeleteInvoices(IEnumerable<int> invoiceIds)
@@ -127,15 +113,16 @@ namespace SMS.Services
             foreach (var invoice in invoices)
             {
                 invoice.DeletedAt = DateTime.Now;
-                _dbContext.Update<Invoice>(invoice);
+                _dbContext.Update(invoice);
             }
             _dbContext.Save();
         }
 
-
         public Invoice GetLastInvoice()
         {
-            return _dbContext.Get<Invoice>(i => i.DeletedAt == null)?.OrderByDescending(i=> i.InvoiceId)?.FirstOrDefault();
+            return _dbContext.Get<Invoice>(i => i.DeletedAt == null)
+                .OrderByDescending(i => i.InvoiceId)
+                .FirstOrDefault();
         }
 
         public string GenerateInvoiceNumber()
@@ -143,6 +130,16 @@ namespace SMS.Services
             var lastInvoice = GetLastInvoice();
             int nextInvoiceNumber = lastInvoice == null ? 1 : lastInvoice.InvoiceId + 1;
             return $"INVO{nextInvoiceNumber:D3}";
+        }
+
+        public IEnumerable<Invoice> GetInvoicesByCustomerId(int customerId)
+        {
+            return _dbContext.Get<Invoice>(i => i.Transaction.CustomerId == customerId && i.DeletedAt == null).ToList();
+        }
+
+        public IEnumerable<Invoice> GetInvoiceByInvoiceNo(string invoiceNo)
+        {
+            return _dbContext.Get<Invoice>(i => i.InvoiceNo.ToLower() == invoiceNo.ToLower() && i.DeletedAt == null).ToList();
         }
     }
 }

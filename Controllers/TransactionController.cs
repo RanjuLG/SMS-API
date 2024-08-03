@@ -16,12 +16,14 @@ namespace SMS.Controllers
     {
         private readonly ITransactionService _transactionService;
         private readonly IInvoiceService _invoiceService;
+        private readonly ICustomerService _customerService;
         private readonly IMapper _mapper;
 
-        public TransactionController(ITransactionService transactionService, IInvoiceService invoiceService, IMapper mapper)
+        public TransactionController(ITransactionService transactionService, IInvoiceService invoiceService,ICustomerService customerService, IMapper mapper)
         {
             _transactionService = transactionService;
             _invoiceService = invoiceService;
+            _customerService = customerService;
             _mapper = mapper;
         }
 
@@ -143,5 +145,29 @@ namespace SMS.Controllers
 
             return Ok();
         }
+
+        [HttpGet("customer/{customerNIC}")]
+        public ActionResult<IEnumerable<TransactionDTO>> GetTransactionsByCustomerNIC(string customerNIC)
+        {
+            try
+            {
+                var customer = _customerService.GetCustomerByNIC(customerNIC);
+                if (customer == null)
+                {
+                    return NotFound("Customer not found.");
+                }
+
+                var transactions = _transactionService.GetTransactionsByCustomerId(customer.CustomerId);
+                var transactionDTOs = _mapper.Map<IEnumerable<TransactionDTO>>(transactions);
+
+                return Ok(transactionDTOs);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
     }
 }

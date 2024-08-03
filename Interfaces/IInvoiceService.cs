@@ -16,5 +16,8 @@ namespace SMS.Interfaces
         void DeleteInvoices(IEnumerable<int> invoiceIds);
         public abstract string GenerateInvoiceNumber();
         public Invoice GetLastInvoice();
+        IEnumerable<Invoice> GetInvoicesByCustomerId(int customerId);
+        IEnumerable<Invoice> GetInvoiceByInvoiceNo(string invoiceNo);
+
     }
 }
