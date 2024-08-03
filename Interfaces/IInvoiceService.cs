@@ -17,6 +17,7 @@ namespace SMS.Interfaces
         public abstract string GenerateInvoiceNumber();
         public Invoice GetLastInvoice();
         IEnumerable<Invoice> GetInvoicesByCustomerId(int customerId);
+        IEnumerable<Invoice> GetInvoiceByInvoiceNo(string invoiceNo);
 
     }
 }

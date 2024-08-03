@@ -136,5 +136,10 @@ namespace SMS.Services
         {
             return _dbContext.Get<Invoice>(i => i.Transaction.CustomerId == customerId && i.DeletedAt == null).ToList();
         }
+
+        public IEnumerable<Invoice> GetInvoiceByInvoiceNo(string invoiceNo)
+        {
+            return _dbContext.Get<Invoice>(i => i.InvoiceNo.ToLower() == invoiceNo.ToLower() && i.DeletedAt == null).ToList();
+        }
     }
 }
