@@ -11,5 +11,7 @@ namespace SMS.Interfaces
         void UpdateItem(Item item);
         void DeleteItem(int itemId);
         void DeleteItems(IEnumerable<int> itemIds);
+        IEnumerable<Item> GetItemsByCustomerId(int customerId);
+
     }
 }

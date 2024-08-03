@@ -13,5 +13,7 @@ namespace SMS.Interfaces
         void UpdateTransaction(Transaction transaction);
         void DeleteTransaction(int transactionId);
         void DeleteTransactions(IEnumerable<int> transactionIds);
+        IEnumerable<Transaction> GetTransactionsByCustomerId(int customerId);
+
     }
 }
