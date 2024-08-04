@@ -8,7 +8,7 @@
         public decimal Interest { get; set; }
         public decimal TotalAmount { get; set; }
         public GetCustomerDTO Customer { get; set; }
-        public ICollection<TransactionItemDTO> TransactionItems { get; set; }
+        public ICollection<GetItemDTO> Items { get; set; } // Add this line to include the items
     }
 
     public class CreateTransactionDTO
@@ -20,14 +20,6 @@
         public decimal Interest { get; set; }
         public decimal TotalAmount { get; set; }
         public List<CreateItemDTO> Items { get; set; }
-    }
-
-    public class TransactionItemDTO
-    {
-        public int TransactionItemId { get; set; }
-        public int TransactionId { get; set; }
-        public int ItemId { get; set; }
-        public GetItemDTO Item { get; set; }
     }
 
     public class UpdateTransactionDTO
