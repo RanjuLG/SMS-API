@@ -30,7 +30,18 @@ namespace SMS.Controllers
             try
             {
                 var items = _ItemService.GetAllItems();
-                var itemsDTO = _mapper.Map<IEnumerable<GetItemDTO>>(items);
+                var itemsDTO = items.Select(item => new GetItemDTO
+                {
+                    ItemId = item.ItemId,
+                    ItemDescription = item.ItemDescription,
+                    ItemCaratage = item.ItemCaratage,
+                    ItemGoldWeight = item.ItemGoldWeight,
+                    ItemValue = item.ItemValue,
+                    Status = item.Status,
+                    CreatedAt = item.CreatedAt,
+                    CustomerNIC = item.Customer != null ? item.Customer.CustomerNIC : null // Assuming Customer has an NIC property
+                }).ToList();
+
                 return Ok(itemsDTO);
             }
             catch (Exception ex)
@@ -39,6 +50,7 @@ namespace SMS.Controllers
                 return StatusCode(500, "Internal server error");
             }
         }
+
 
 
 

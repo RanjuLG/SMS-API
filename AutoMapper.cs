@@ -26,6 +26,8 @@ namespace SMS
             CreateMap<UpdateItemDTO, Item>();
             CreateMap<Item, GetItemDTO>()
              .ForMember(dest => dest.CustomerNIC, opt => opt.MapFrom(src => src.Customer.CustomerNIC));
+            CreateMap<GetItemDTO, Item>();
+
 
 
 
