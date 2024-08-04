@@ -20,8 +20,8 @@ namespace SMS.Services
             return _dbContext.Get<Transaction>(t => t.DeletedAt == null)
                              .Include(t => t.Customer)
                              .Include(t => t.Invoice)
-                             .Include(t => t.TransactionItems) // Ensure correct include
-                                 .ThenInclude(ti => ti.Item) // Ensure correct include
+                             .Include(t => t.TransactionItems)
+                                 .ThenInclude(ti => ti.Item)
                              .ToList();
         }
 
@@ -30,8 +30,8 @@ namespace SMS.Services
             return _dbContext.Get<Transaction>(t => t.TransactionId == transactionId && t.DeletedAt == null)
                              .Include(t => t.Customer)
                              .Include(t => t.Invoice)
-                             .Include(t => t.TransactionItems) // Ensure correct include
-                                 .ThenInclude(ti => ti.Item) // Ensure correct include
+                             .Include(t => t.TransactionItems)
+                                 .ThenInclude(ti => ti.Item)
                              .FirstOrDefault();
         }
 
@@ -41,8 +41,8 @@ namespace SMS.Services
                              .Where(t => transactionIds.Contains(t.TransactionId) && t.DeletedAt == null)
                              .Include(t => t.Customer)
                              .Include(t => t.Invoice)
-                             .Include(t => t.TransactionItems) // Ensure correct include
-                                 .ThenInclude(ti => ti.Item) // Ensure correct include
+                             .Include(t => t.TransactionItems)
+                                 .ThenInclude(ti => ti.Item)
                              .ToList();
         }
 
@@ -84,8 +84,10 @@ namespace SMS.Services
         public IEnumerable<Transaction> GetTransactionsByCustomerId(int customerId)
         {
             return _dbContext.Get<Transaction>(t => t.CustomerId == customerId && t.DeletedAt == null)
-                             .Include(t => t.TransactionItems) // Ensure correct include
-                                 .ThenInclude(ti => ti.Item) // Ensure correct include
+                             .Include(t => t.Customer)
+                             .Include(t => t.Invoice)
+                             .Include(t => t.TransactionItems)
+                                 .ThenInclude(ti => ti.Item)
                              .ToList();
         }
     }

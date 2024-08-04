@@ -45,9 +45,7 @@ namespace SMS
             CreateMap<UpdateInvoiceDTO, Invoice>();
 
             //Mapping for Transactions
-            CreateMap<Transaction, TransactionDTO>()
-                      .ForMember(dest => dest.Customer, opt => opt.MapFrom(src => src.Customer))
-                      .ForMember(dest => dest.TransactionItems, opt => opt.MapFrom(src => src.TransactionItems));
+          
 
             CreateMap<TransactionDTO, Transaction>();
 
@@ -61,14 +59,27 @@ namespace SMS
             CreateMap<Item, CommonItemDTO>();
 
             CreateMap<Transaction, TransactionDTO>()
-           .ForMember(dest => dest.Customer, opt => opt.MapFrom(src => src.Customer))
-           .ForMember(dest => dest.TransactionItems, opt => opt.MapFrom(src => src.TransactionItems));
-            CreateMap<TransactionItem, TransactionItemDTO>()
-                .ForMember(dest => dest.Item, opt => opt.MapFrom(src => src.Item));
+            .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.TransactionItems.Select(ti => ti.Item)))
+            .ForMember(dest => dest.Customer, opt => opt.MapFrom(src => src.Customer));
+            CreateMap<Transaction, TransactionDTO>()
+                        .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.TransactionItems.Select(ti => ti.Item)))
+                        .ForMember(dest => dest.Customer, opt => opt.MapFrom(src => src.Customer));
 
             CreateMap<CreateTransactionDTO, Transaction>()
-                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.Now));
+                .ForMember(dest => dest.TransactionItems, opt => opt.MapFrom((src, dest, destMember, context) =>
+                    src.Items.Select(i => new TransactionItem { Item = context.Mapper.Map<Item>(i) })));
+
             CreateMap<UpdateTransactionDTO, Transaction>();
+
+            CreateMap<Item, GetItemDTO>();
+            CreateMap<Customer, GetCustomerDTO>();
+
+            CreateMap<CreateItemDTO, Item>()
+                .ForMember(dest => dest.ItemId, opt => opt.Ignore()) // Assuming ItemId is auto-generated
+                .ForMember(dest => dest.Status, opt => opt.Ignore()) // Assuming Status is set elsewhere
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.CustomerId, opt => opt.Ignore());
         }
     }
 }
