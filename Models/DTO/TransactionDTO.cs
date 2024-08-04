@@ -5,7 +5,7 @@
         public int TransactionId { get; set; }
         public DateTime? CreatedAt { get; set; }
         public decimal SubTotal { get; set; }
-        public decimal Interest { get; set; }
+        public decimal InterestRate { get; set; }
         public decimal TotalAmount { get; set; }
         public GetCustomerDTO Customer { get; set; }
         public ICollection<GetItemDTO> Items { get; set; } // Add this line to include the items
@@ -17,7 +17,7 @@
         public DateTime Date { get; set; }
         public bool PaymentStatus { get; set; }
         public decimal SubTotal { get; set; }
-        public decimal Interest { get; set; }
+        public decimal InterestRate { get; set; }
         public decimal TotalAmount { get; set; }
         public List<CreateItemDTO> Items { get; set; }
     }

@@ -81,7 +81,7 @@ namespace SMS.Controllers
                     CustomerId = customer.CustomerId,
                     CreatedAt = DateTime.Now,
                     SubTotal = request.SubTotal,
-                    InterestRate = request.Interest,
+                    InterestRate = request.InterestRate,
                     TotalAmount = request.TotalAmount,
                     TransactionItems = request.Items.Select(i => new TransactionItem { Item = _mapper.Map<Item>(i) }).ToList()
                 };
