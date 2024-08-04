@@ -1,10 +1,8 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
-using SMS.Enums;
 using SMS.Interfaces;
 using SMS.Models;
 using SMS.Models.DTO;
-using SMS.Services;
 using System;
 using System.Collections.Generic;
 
@@ -19,7 +17,7 @@ namespace SMS.Controllers
         private readonly ICustomerService _customerService;
         private readonly IMapper _mapper;
 
-        public TransactionController(ITransactionService transactionService, IInvoiceService invoiceService,ICustomerService customerService, IMapper mapper)
+        public TransactionController(ITransactionService transactionService, IInvoiceService invoiceService, ICustomerService customerService, IMapper mapper)
         {
             _transactionService = transactionService;
             _invoiceService = invoiceService;
@@ -44,15 +42,14 @@ namespace SMS.Controllers
             }
         }
 
-
         [HttpPost]
         [Route("byIds")]
-        public ActionResult<List<TransactionDTO>> GetTransactionById(List<int> transactionIds)
+        public ActionResult<List<TransactionDTO>> GetTransactionById([FromBody] List<int> transactionIds)
         {
             try
             {
                 var transactions = _transactionService.GetTransactionsByIds(transactionIds);
-                if (transactions == null || !transactions.Any())
+                if (transactions == null || transactions.Count == 0)
                 {
                     return NotFound();
                 }
@@ -67,20 +64,30 @@ namespace SMS.Controllers
             }
         }
 
-
         [HttpPost]
         [Route("")]
         public ActionResult CreateTransaction([FromBody] CreateTransactionDTO request)
         {
             try
             {
-                // Create the transaction and the associated invoice
-                var transaction = _mapper.Map<Transaction>(request);
+                var customer = _customerService.GetCustomerByNIC(request.CustomerNIC);
+                if (customer == null)
+                {
+                    return NotFound("Customer not found.");
+                }
 
-                // Create the transaction
+                var transaction = new Transaction
+                {
+                    CustomerId = customer.CustomerId,
+                    CreatedAt = DateTime.Now,
+                    SubTotal = request.SubTotal,
+                    InterestRate = request.Interest,
+                    TotalAmount = request.TotalAmount,
+                    TransactionItems = _mapper.Map<List<TransactionItem>>(request.Items)
+                };
+
                 _transactionService.CreateTransaction(transaction);
 
-                // Automatically generate an invoice for the transaction
                 var invoice = new Invoice
                 {
                     TransactionId = transaction.TransactionId,
@@ -93,7 +100,6 @@ namespace SMS.Controllers
                 };
 
                 _invoiceService.CreateInvoice(invoice);
-            
 
                 return Ok();
             }
@@ -103,7 +109,6 @@ namespace SMS.Controllers
                 return StatusCode(500, "Internal server error");
             }
         }
-
 
         [HttpPut]
         [Route("{transactionId}")]
@@ -117,7 +122,6 @@ namespace SMS.Controllers
                     return NotFound();
                 }
 
-                // Update properties of existingTransaction from request
                 _mapper.Map(request, existingTransaction);
 
                 _transactionService.UpdateTransaction(existingTransaction);
@@ -130,8 +134,6 @@ namespace SMS.Controllers
                 return StatusCode(500, "Internal server error");
             }
         }
-
-       
 
         [HttpDelete("delete-multiple")]
         public IActionResult DeleteMultipleTransactions([FromBody] List<int> transactionIds)
@@ -168,6 +170,5 @@ namespace SMS.Controllers
                 return StatusCode(500, "Internal server error");
             }
         }
-
     }
 }

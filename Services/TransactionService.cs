@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
-using SMS.Enums;
 using SMS.Interfaces;
 using SMS.Models;
 
@@ -19,22 +17,22 @@ namespace SMS.Services
 
         public IList<Transaction> GetAllTransactions()
         {
-           
-               return _dbContext.Get<Transaction>(t => t.DeletedAt == null)
-                                 .Include(t => t.Customer)
-                                 .Include(t => t.Item)
-                                 .Include(t => t.Invoice)
-                                .ToList();
-            
-            
+            return _dbContext.Get<Transaction>(t => t.DeletedAt == null)
+                             .Include(t => t.Customer)
+                             .Include(t => t.Invoice)
+                             .Include(t => t.TransactionItems) // Ensure correct include
+                                 .ThenInclude(ti => ti.Item) // Ensure correct include
+                             .ToList();
         }
+
         public Transaction GetTransactionById(int transactionId)
         {
             return _dbContext.Get<Transaction>(t => t.TransactionId == transactionId && t.DeletedAt == null)
-                      .Include(t => t.Customer)
-                      .Include(t => t.Item)
-                      .Include(t => t.Invoice)
-                      .FirstOrDefault();
+                             .Include(t => t.Customer)
+                             .Include(t => t.Invoice)
+                             .Include(t => t.TransactionItems) // Ensure correct include
+                                 .ThenInclude(ti => ti.Item) // Ensure correct include
+                             .FirstOrDefault();
         }
 
         public List<Transaction> GetTransactionsByIds(List<int> transactionIds)
@@ -42,11 +40,11 @@ namespace SMS.Services
             return _dbContext.Get<Transaction>()
                              .Where(t => transactionIds.Contains(t.TransactionId) && t.DeletedAt == null)
                              .Include(t => t.Customer)
-                             .Include(t => t.Item)
                              .Include(t => t.Invoice)
+                             .Include(t => t.TransactionItems) // Ensure correct include
+                                 .ThenInclude(ti => ti.Item) // Ensure correct include
                              .ToList();
         }
-
 
         public void CreateTransaction(Transaction transaction)
         {
@@ -85,11 +83,10 @@ namespace SMS.Services
 
         public IEnumerable<Transaction> GetTransactionsByCustomerId(int customerId)
         {
-            return _dbContext.Get<Transaction>(t => t.CustomerId == customerId && t.DeletedAt == null).ToList();
+            return _dbContext.Get<Transaction>(t => t.CustomerId == customerId && t.DeletedAt == null)
+                             .Include(t => t.TransactionItems) // Ensure correct include
+                                 .ThenInclude(ti => ti.Item) // Ensure correct include
+                             .ToList();
         }
-
-
-
-
     }
 }

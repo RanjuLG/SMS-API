@@ -15,11 +15,12 @@ namespace SMS.DBContext
         }
 
         public DbSet<Customer> Customers { get; set; }
-        public DbSet<Item> Items { get; set; }
+
         public DbSet<Transaction> Transactions { get; set; }
+        public DbSet<TransactionItem> TransactionItems { get; set; }
+        public DbSet<Item> Items { get; set; }
         public DbSet<Invoice> Invoices { get; set; }
         public DbSet<GoldCaratage> Caratages { get; set; }
-        public DbSet<TransactionItem> TransactionItems { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -76,6 +77,32 @@ namespace SMS.DBContext
             modelBuilder.Entity<Invoice>()
                 .HasIndex(c => c.InvoiceNo)
                 .IsUnique();
+
+
+
+            // Configure TransactionItem entity
+            modelBuilder.Entity<TransactionItem>()
+                .HasKey(ti => ti.TransactionItemId);
+
+            modelBuilder.Entity<TransactionItem>()
+                .HasOne(ti => ti.Transaction)
+                .WithMany(t => t.TransactionItems)
+                .HasForeignKey(ti => ti.TransactionId);
+
+            modelBuilder.Entity<TransactionItem>()
+                .HasOne(ti => ti.Item)
+                .WithMany()
+                .HasForeignKey(ti => ti.ItemId);
+
+            // Configure Transaction entity
+            modelBuilder.Entity<Transaction>()
+                .HasKey(t => t.TransactionId);
+
+            modelBuilder.Entity<Transaction>()
+                .HasMany(t => t.TransactionItems)
+                .WithOne(ti => ti.Transaction)
+                .HasForeignKey(ti => ti.TransactionId);
+
 
             // Add other configurations for relationships, indexes, etc., if needed
 

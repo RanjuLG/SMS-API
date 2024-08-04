@@ -26,7 +26,7 @@ namespace SMS.Models
         public virtual Customer? Customer { get; set; }
 
         // Navigation property for the related Item
-        public virtual Item? Item { get; set; }
+        //public virtual Item? Item { get; set; }
 
         // Navigation property for the related Invoice
         public virtual Invoice? Invoice { get; set; }

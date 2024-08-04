@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SMS.DBContext;
 
@@ -11,9 +12,11 @@ using SMS.DBContext;
 namespace SMS.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240803200601_1233223")]
+    partial class _1233223
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -283,17 +286,12 @@ namespace SMS.Migrations
                     b.Property<int>("ItemId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("ItemId1")
-                        .HasColumnType("int");
-
                     b.Property<int>("TransactionId")
                         .HasColumnType("int");
 
                     b.HasKey("TransactionItemId");
 
                     b.HasIndex("ItemId");
-
-                    b.HasIndex("ItemId1");
 
                     b.HasIndex("TransactionId");
 
@@ -340,14 +338,10 @@ namespace SMS.Migrations
             modelBuilder.Entity("SMS.Models.TransactionItem", b =>
                 {
                     b.HasOne("SMS.Models.Item", "Item")
-                        .WithMany()
+                        .WithMany("TransactionItems")
                         .HasForeignKey("ItemId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("SMS.Models.Item", null)
-                        .WithMany("TransactionItems")
-                        .HasForeignKey("ItemId1");
 
                     b.HasOne("SMS.Models.Transaction", "Transaction")
                         .WithMany("TransactionItems")

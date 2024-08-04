@@ -47,7 +47,7 @@ namespace SMS
             //Mapping for Transactions
             CreateMap<Transaction, TransactionDTO>()
                       .ForMember(dest => dest.Customer, opt => opt.MapFrom(src => src.Customer))
-                      .ForMember(dest => dest.Item, opt => opt.MapFrom(src => src.Item));
+                      .ForMember(dest => dest.TransactionItems, opt => opt.MapFrom(src => src.TransactionItems));
 
             CreateMap<TransactionDTO, Transaction>();
 
@@ -59,6 +59,16 @@ namespace SMS
 
             CreateMap<Customer, CommonCustomerDTO>();
             CreateMap<Item, CommonItemDTO>();
+
+            CreateMap<Transaction, TransactionDTO>()
+           .ForMember(dest => dest.Customer, opt => opt.MapFrom(src => src.Customer))
+           .ForMember(dest => dest.TransactionItems, opt => opt.MapFrom(src => src.TransactionItems));
+            CreateMap<TransactionItem, TransactionItemDTO>()
+                .ForMember(dest => dest.Item, opt => opt.MapFrom(src => src.Item));
+
+            CreateMap<CreateTransactionDTO, Transaction>()
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.Now));
+            CreateMap<UpdateTransactionDTO, Transaction>();
         }
     }
 }
