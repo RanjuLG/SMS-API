@@ -60,13 +60,25 @@ namespace SMS.Controllers
         {
             try
             {
-                var Item = _ItemService.GetItemById(ItemId);
-                if (Item == null)
+                var item = _ItemService.GetItemById(ItemId);
+                if (item == null)
                 {
                     return NotFound();
                 }
 
-                var ItemDTO = _mapper.Map<GetItemDTO>(Item);
+                var ItemDTO = new GetItemDTO 
+                {
+                    ItemId = item.ItemId,
+                    ItemDescription = item.ItemDescription,
+                    ItemCaratage = item.ItemCaratage,
+                    ItemGoldWeight = item.ItemGoldWeight,
+                    ItemValue = item.ItemValue,
+                    Status = item.Status,
+                    CreatedAt = item.CreatedAt,
+                    CustomerNIC = item.Customer != null ? item.Customer.CustomerNIC : null
+
+
+                };
                 return Ok(ItemDTO);
             }
             catch (Exception ex)
@@ -201,7 +213,17 @@ namespace SMS.Controllers
                 }
 
                 var items = _ItemService.GetItemsByCustomerId(customer.CustomerId);
-                var itemsDTO = _mapper.Map<IEnumerable<GetItemDTO>>(items);
+                var itemsDTO = items.Select(item => new GetItemDTO
+                {
+                    ItemId = item.ItemId,
+                    ItemDescription = item.ItemDescription,
+                    ItemCaratage = item.ItemCaratage,
+                    ItemGoldWeight = item.ItemGoldWeight,
+                    ItemValue = item.ItemValue,
+                    Status = item.Status,
+                    CreatedAt = item.CreatedAt,
+                    CustomerNIC = item.Customer != null ? item.Customer.CustomerNIC : null // Assuming Customer has an NIC property
+                }).ToList();
 
                 return Ok(itemsDTO);
             }

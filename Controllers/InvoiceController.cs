@@ -225,16 +225,26 @@ namespace SMS.Controllers
                 }
 
                 var invoices = _invoiceService.GetInvoicesByCustomerId(customer.CustomerId);
-                var invoiceDTOs = _mapper.Map<IEnumerable<GetInvoiceDTO>>(invoices);
+                var invoiceDTOs = invoices.Select(invoice => new GetInvoiceDTO
+                {
+                    InvoiceId = invoice.InvoiceId,
+                    InvoiceNo = invoice.InvoiceNo,
+                    TransactionId = invoice.TransactionId,
+                    CustomerNIC = customerNIC,
+                    TotalAmount = invoice.Transaction != null ? invoice.Transaction.TotalAmount : null,
+                    DateGenerated = invoice.DateGenerated,
+                    Status = invoice.Status
+                }).ToList();
 
                 return Ok(invoiceDTOs);
             }
             catch (Exception ex)
             {
-                // Log the exception
+                // Log the exception (you can use a logging framework for this)
                 return StatusCode(500, "Internal server error");
             }
         }
+
 
         [HttpGet("invoiceNo/{invoiceNo}")]
         public ActionResult<IEnumerable<GetInvoiceDTO>> GetInvoiceByInvoiceNo(string invoiceNo)
