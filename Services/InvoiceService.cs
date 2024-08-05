@@ -38,6 +38,11 @@ namespace SMS.Services
             {
                 var transaction = _transactionService.GetTransactionById(invoice_.TransactionId);
 
+                if(transaction == null)
+                {
+                    continue;
+                }
+
                 var invoice = new GetInvoiceDTO
                 {
                     InvoiceId = invoice_.InvoiceId,
