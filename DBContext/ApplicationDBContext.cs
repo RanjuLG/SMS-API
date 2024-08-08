@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Internal;
 using SMS.Models;
 using System.Linq;
 using System.Threading;
@@ -15,99 +14,102 @@ namespace SMS.DBContext
         }
 
         public DbSet<Customer> Customers { get; set; }
-
+        public DbSet<Invoice> Invoices { get; set; }
+        public DbSet<Item> Items { get; set; }
         public DbSet<Transaction> Transactions { get; set; }
         public DbSet<TransactionItem> TransactionItems { get; set; }
-        public DbSet<Item> Items { get; set; }
-        public DbSet<Invoice> Invoices { get; set; }
-        public DbSet<GoldCaratage> Caratages { get; set; }
+        public DbSet<GoldCaratage> GoldCaratages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Configure decimal properties for Item entity
-            modelBuilder.Entity<Item>()
-                .Property(i => i.ItemCaratage)
-                .HasColumnType("decimal(18, 2)");
-
-            modelBuilder.Entity<Item>()
-                .Property(i => i.ItemGoldWeight)
-                .HasColumnType("decimal(18, 2)");
-
-            modelBuilder.Entity<Item>()
-                .Property(i => i.ItemValue)
-                .HasColumnType("decimal(18, 2)");
-
-            // Configure decimal properties for Transaction entity
+            // Configuring the relationships
             modelBuilder.Entity<Transaction>()
-                .Property(t => t.InterestRate)
-                .HasColumnType("decimal(18, 2)");
+                .HasOne(t => t.Customer)
+                .WithMany(c => c.Transactions)
+                .HasForeignKey(t => t.CustomerId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Transaction>()
-                .Property(t => t.SubTotal)
-                .HasColumnType("decimal(18, 2)");
-
-            // Configure Customer entity
-            modelBuilder.Entity<Customer>()
-                .HasKey(c => c.CustomerId);
-
-            modelBuilder.Entity<Customer>()
-                .Property(c => c.CustomerId)
-                .ValueGeneratedOnAdd();
-
-            modelBuilder.Entity<Customer>()
-                .HasIndex(c => c.CustomerNIC)
-                .IsUnique();
-
-            // Configure Item entity
-            modelBuilder.Entity<Item>()
-                .HasKey(i => i.ItemId);
+                .HasOne(t => t.Invoice)
+                .WithOne(i => i.Transaction)
+                .HasForeignKey<Invoice>(i => i.TransactionId)
+                .OnDelete(DeleteBehavior.Restrict); // Changed from Cascade to Restrict
 
             modelBuilder.Entity<Item>()
-                .Property(i => i.ItemId)
-                .ValueGeneratedOnAdd();
+                .HasOne(i => i.Customer)
+                .WithMany(c => c.Items)
+                .HasForeignKey(i => i.CustomerId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-            // Configure Invoice entity
-            modelBuilder.Entity<Invoice>()
-                .HasKey(i => i.InvoiceId);
-
-            modelBuilder.Entity<Invoice>()
-                .Property(i => i.InvoiceId)
-                .ValueGeneratedOnAdd();
-
-            modelBuilder.Entity<Invoice>()
-                .HasIndex(c => c.InvoiceNo)
-                .IsUnique();
-
-
-
-            // Configure TransactionItem entity
             modelBuilder.Entity<TransactionItem>()
                 .HasKey(ti => ti.TransactionItemId);
 
             modelBuilder.Entity<TransactionItem>()
                 .HasOne(ti => ti.Transaction)
                 .WithMany(t => t.TransactionItems)
-                .HasForeignKey(ti => ti.TransactionId);
+                .HasForeignKey(ti => ti.TransactionId)
+                .OnDelete(DeleteBehavior.NoAction); // Changed from Cascade to Restrict
 
             modelBuilder.Entity<TransactionItem>()
                 .HasOne(ti => ti.Item)
-                .WithMany()
-                .HasForeignKey(ti => ti.ItemId);
+                .WithMany(i => i.TransactionItems)
+                .HasForeignKey(ti => ti.ItemId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-            // Configure Transaction entity
+            modelBuilder.Entity<Invoice>()
+                .HasOne(i => i.Transaction)
+                .WithOne(t => t.Invoice)
+                .HasForeignKey<Invoice>(i => i.TransactionId)
+                .OnDelete(DeleteBehavior.NoAction); // Changed from Cascade to Restrict
+
+            // Configuring decimal properties with precision and scale
             modelBuilder.Entity<Transaction>()
-                .HasKey(t => t.TransactionId);
+                .Property(t => t.SubTotal)
+                .HasColumnType("decimal(18,2)");
 
             modelBuilder.Entity<Transaction>()
-                .HasMany(t => t.TransactionItems)
-                .WithOne(ti => ti.Transaction)
-                .HasForeignKey(ti => ti.TransactionId);
+                .Property(t => t.InterestRate)
+                .HasColumnType("decimal(18,2)");
 
+            modelBuilder.Entity<Transaction>()
+                .Property(t => t.TotalAmount)
+                .HasColumnType("decimal(18,2)");
 
-            // Add other configurations for relationships, indexes, etc., if needed
+            modelBuilder.Entity<Item>()
+                .Property(i => i.ItemCaratage)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<Item>()
+                .Property(i => i.ItemGoldWeight)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<Item>()
+                .Property(i => i.ItemValue)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<GoldCaratage>()
+                .Property(gc => gc.Caratage)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<GoldCaratage>()
+                .Property(gc => gc.OneMonth)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<GoldCaratage>()
+                .Property(gc => gc.ThreeMonth)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<GoldCaratage>()
+                .Property(gc => gc.SixMonth)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<GoldCaratage>()
+                .Property(gc => gc.TwelveMonth)
+                .HasColumnType("decimal(18,2)");
 
             base.OnModelCreating(modelBuilder);
         }
+
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

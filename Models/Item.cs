@@ -7,9 +7,10 @@ namespace SMS.Models
     public class Item
     {
         [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int ItemId { get; set; }
 
+        [ForeignKey("Customer")]
+        public int? CustomerId { get; set; }
         public string? ItemDescription { get; set; }
         public decimal? ItemCaratage { get; set; }
         public decimal? ItemGoldWeight { get; set; }
@@ -22,12 +23,8 @@ namespace SMS.Models
         public DateTime? UpdatedAt { get; set; } = DateTime.Now;
         public DateTime? DeletedAt { get; set; }
 
-        [ForeignKey("Customer")]
-        public int? CustomerId { get; set; }
-
-        // Navigation property for the related Customer
-        public virtual Customer? Customer { get; set; }
-
+        // Navigation Properties
+        public virtual Customer Customer { get; set; }
         public virtual ICollection<TransactionItem> TransactionItems { get; set; }
     }
 }

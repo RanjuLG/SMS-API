@@ -47,7 +47,7 @@ namespace SMS.Migrations
 
                     b.Property<string>("CustomerNIC")
                         .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("CustomerName")
                         .HasColumnType("nvarchar(max)");
@@ -65,9 +65,6 @@ namespace SMS.Migrations
                         .HasColumnType("bigint");
 
                     b.HasKey("CustomerId");
-
-                    b.HasIndex("CustomerNIC")
-                        .IsUnique();
 
                     b.ToTable("Customers");
                 });
@@ -115,7 +112,7 @@ namespace SMS.Migrations
 
                     b.HasKey("CaratageId");
 
-                    b.ToTable("Caratages");
+                    b.ToTable("GoldCaratages");
                 });
 
             modelBuilder.Entity("SMS.Models.Invoice", b =>
@@ -142,7 +139,7 @@ namespace SMS.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<string>("InvoiceNo")
-                        .HasColumnType("nvarchar(450)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("Status")
                         .HasColumnType("int");
@@ -157,10 +154,6 @@ namespace SMS.Migrations
                         .HasColumnType("bigint");
 
                     b.HasKey("InvoiceId");
-
-                    b.HasIndex("InvoiceNo")
-                        .IsUnique()
-                        .HasFilter("[InvoiceNo] IS NOT NULL");
 
                     b.HasIndex("TransactionId")
                         .IsUnique();
@@ -192,16 +185,16 @@ namespace SMS.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<decimal?>("ItemCaratage")
-                        .HasColumnType("decimal(18, 2)");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("ItemDescription")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal?>("ItemGoldWeight")
-                        .HasColumnType("decimal(18, 2)");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal?>("ItemValue")
-                        .HasColumnType("decimal(18, 2)");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int?>("Status")
                         .HasColumnType("int");
@@ -243,13 +236,10 @@ namespace SMS.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<decimal?>("InterestRate")
-                        .HasColumnType("decimal(18, 2)");
-
-                    b.Property<int?>("ItemId")
-                        .HasColumnType("int");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal?>("SubTotal")
-                        .HasColumnType("decimal(18, 2)");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal?>("TotalAmount")
                         .HasColumnType("decimal(18,2)");
@@ -263,8 +253,6 @@ namespace SMS.Migrations
                     b.HasKey("TransactionId");
 
                     b.HasIndex("CustomerId");
-
-                    b.HasIndex("ItemId");
 
                     b.ToTable("Transactions");
                 });
@@ -283,17 +271,12 @@ namespace SMS.Migrations
                     b.Property<int>("ItemId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("ItemId1")
-                        .HasColumnType("int");
-
                     b.Property<int>("TransactionId")
                         .HasColumnType("int");
 
                     b.HasKey("TransactionItemId");
 
                     b.HasIndex("ItemId");
-
-                    b.HasIndex("ItemId1");
 
                     b.HasIndex("TransactionId");
 
@@ -305,7 +288,7 @@ namespace SMS.Migrations
                     b.HasOne("SMS.Models.Transaction", "Transaction")
                         .WithOne("Invoice")
                         .HasForeignKey("SMS.Models.Invoice", "TransactionId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("Transaction");
@@ -315,7 +298,8 @@ namespace SMS.Migrations
                 {
                     b.HasOne("SMS.Models.Customer", "Customer")
                         .WithMany("Items")
-                        .HasForeignKey("CustomerId");
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("Customer");
                 });
@@ -328,31 +312,21 @@ namespace SMS.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SMS.Models.Item", "Item")
-                        .WithMany()
-                        .HasForeignKey("ItemId");
-
                     b.Navigation("Customer");
-
-                    b.Navigation("Item");
                 });
 
             modelBuilder.Entity("SMS.Models.TransactionItem", b =>
                 {
                     b.HasOne("SMS.Models.Item", "Item")
-                        .WithMany()
+                        .WithMany("TransactionItems")
                         .HasForeignKey("ItemId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SMS.Models.Item", null)
-                        .WithMany("TransactionItems")
-                        .HasForeignKey("ItemId1");
-
                     b.HasOne("SMS.Models.Transaction", "Transaction")
                         .WithMany("TransactionItems")
                         .HasForeignKey("TransactionId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("Item");
@@ -374,7 +348,8 @@ namespace SMS.Migrations
 
             modelBuilder.Entity("SMS.Models.Transaction", b =>
                 {
-                    b.Navigation("Invoice");
+                    b.Navigation("Invoice")
+                        .IsRequired();
 
                     b.Navigation("TransactionItems");
                 });
