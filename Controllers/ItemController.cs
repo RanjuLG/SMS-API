@@ -96,7 +96,7 @@ namespace SMS.Controllers
             {
                 var isCustomerExists = _customerService.GetCustomerByNIC(request.CustomerNIC);
 
-                if (isCustomerExists != null)
+                if (isCustomerExists == null)
                 {
                     return NotFound();
                 }

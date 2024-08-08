@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -8,12 +9,8 @@ namespace SMS.Models
     public class Customer
     {
         [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int CustomerId { get; set; }
-
-        [Required]
         public string CustomerNIC { get; set; }
-
         public string? CustomerName { get; set; }
         public string? CustomerAddress { get; set; }
         public string? CustomerContactNo { get; set; }
@@ -24,8 +21,8 @@ namespace SMS.Models
         public DateTime? UpdatedAt { get; set; } = DateTime.Now;
         public DateTime? DeletedAt { get; set; }
 
-        // Navigation property for related Transactions
+        // Navigation Properties
         public virtual ICollection<Item> Items { get; set; }
-        public virtual ICollection<Transaction>? Transactions { get; set; }
+        public virtual ICollection<Transaction> Transactions { get; set; }
     }
 }

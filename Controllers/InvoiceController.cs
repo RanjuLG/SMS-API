@@ -123,7 +123,7 @@ namespace SMS.Controllers
                         ItemGoldWeight = item.ItemGoldWeight,
                         ItemValue = item.ItemValue,
                         Status = 1,
-                        CustomerId = Customer?.CustomerId,
+                        CustomerId = Customer.CustomerId,
                     };
 
                     var newItem = _mapper.Map<Item>(itemDto);
