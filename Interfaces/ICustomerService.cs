@@ -6,7 +6,7 @@ namespace SMS.Interfaces
 {
     public interface ICustomerService
     {
-        IList<Customer> GetAllCustomers();
+        IList<Customer> GetAllCustomers(IDateTimeRange dateTimeRange);
         Customer GetCustomerById(int customerId);
         IList<Customer> GetCustomersByIds(IEnumerable<int> customerIds);
         void CreateCustomer(Customer customer);
