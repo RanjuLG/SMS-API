@@ -5,6 +5,7 @@ using SMS.Interfaces;
 using SMS.Models.DTO;
 using SMS.Models;
 using SMS.Services;
+using SMS.Generic;
 
 namespace SMS.Controllers
 {
@@ -25,11 +26,11 @@ namespace SMS.Controllers
 
         [HttpGet]
         [Route("")]
-        public ActionResult<IEnumerable<GetItemDTO>> GetItems()
+        public ActionResult<IEnumerable<GetItemDTO>> GetItems([FromQuery] DateTimeRange dataParams)
         {
             try
             {
-                var items = _ItemService.GetAllItems();
+                var items = _ItemService.GetAllItems(dataParams);
                 var itemsDTO = items.Select(item => new GetItemDTO
                 {
                     ItemId = item.ItemId,
