@@ -8,7 +8,7 @@ namespace SMS.Interfaces
     public interface IInvoiceService
     {
         IList<Invoice> GetAllInvoices();
-        IList<GetInvoiceDTO> GetInvoices();
+        IList<GetInvoiceDTO> GetInvoices(IDateTimeRange dateTimeRange);
         public GetInvoiceDTO GetInvoiceById(int invoiceId);
         void CreateInvoice(Invoice invoice);
         void UpdateInvoice(Invoice invoice);

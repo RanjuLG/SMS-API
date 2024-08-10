@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
+using SMS.Generic;
 using SMS.Interfaces;
 using SMS.Models;
 using SMS.Models.DTO;
@@ -30,11 +31,11 @@ namespace SMS.Controllers
 
         [HttpGet]
         [Route("")]
-        public ActionResult<IEnumerable<GetInvoiceDTO>> GetInvoices()
+        public ActionResult<IEnumerable<GetInvoiceDTO>> GetInvoices([FromQuery] DateTimeRange dataParams)
         {
             try
             {
-                var invoices = _invoiceService.GetInvoices();
+                var invoices = _invoiceService.GetInvoices(dataParams);
 
                 var invoiceDTOs = _mapper.Map<IEnumerable<GetInvoiceDTO>>(invoices);
                 return Ok(invoiceDTOs);
