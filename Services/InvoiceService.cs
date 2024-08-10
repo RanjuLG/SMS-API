@@ -29,10 +29,13 @@ namespace SMS.Services
             return invoices;
         }
 
-        public IList<GetInvoiceDTO> GetInvoices()
+        public IList<GetInvoiceDTO> GetInvoices(IDateTimeRange dateTimeRange)
         {
+            var startTime = dateTimeRange.From;
+            var endTime = dateTimeRange.To;
+
             var invoices = new List<GetInvoiceDTO>();
-            var invoices_ = _dbContext.Get<Invoice>(i => i.DeletedAt == null).ToList();
+            var invoices_ = _dbContext.Get<Invoice>(i => i.DeletedAt == null && i.CreatedAt <= endTime && i.CreatedAt >= startTime).ToList();
 
             foreach (var invoice_ in invoices_)
             {

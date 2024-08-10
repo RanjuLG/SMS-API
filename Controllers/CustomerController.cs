@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using SMS.Enums;
+using SMS.Generic;
 using SMS.Interfaces;
 using SMS.Models;
 using SMS.Models.DTO;
@@ -24,11 +25,11 @@ namespace SMS.Controllers
 
         [HttpGet]
         [Route("")]
-        public ActionResult<IEnumerable<GetCustomerDTO>> GetCustomers()
+        public ActionResult<IEnumerable<GetCustomerDTO>> GetCustomers([FromQuery] DateTimeRange dataParams)
         {
             try
             {
-                var customers = _customerService.GetAllCustomers();
+                var customers = _customerService.GetAllCustomers(dataParams);
                 var customersDTO = _mapper.Map<IEnumerable<GetCustomerDTO>>(customers);
                 return Ok(customersDTO);
             }

@@ -19,9 +19,11 @@ namespace SMS.Services
             _readOnlyRepository = readOnlyRepository;
         }
 
-        public IList<Item> GetAllItems()
+        public IList<Item> GetAllItems(IDateTimeRange dateTimeRange)
         {
-            return _dbContext.Get<Item>(i => i.DeletedAt == null)
+             var startTime = dateTimeRange.From;
+            var endTime = dateTimeRange.To;
+            return _dbContext.Get<Item>(i => i.DeletedAt == null && i.CreatedAt <= endTime && i.CreatedAt >= startTime)
                              .Include(i => i.Customer) // Include Customer entity
                              .ToList();
         }

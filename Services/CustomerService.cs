@@ -18,9 +18,12 @@ namespace SMS.Services
             _dbContext = dbContext;
         }
 
-        public IList<Customer> GetAllCustomers()
+        public IList<Customer> GetAllCustomers(IDateTimeRange dateTimeRange)
         {
-            return _dbContext.Get<Customer>(c => c.DeletedAt == null).ToList();
+            var startTime = dateTimeRange.From;
+            var endTime = dateTimeRange.To;
+
+            return _dbContext.Get<Customer>(c => c.DeletedAt == null && c.CreatedAt <= endTime && c.CreatedAt >= startTime).ToList();
         }
 
         public Customer GetCustomerById(int customerId)

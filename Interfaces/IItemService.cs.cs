@@ -5,7 +5,7 @@ namespace SMS.Interfaces
 {
     public interface IItemService
     {
-        IList<Item> GetAllItems();
+        IList<Item> GetAllItems(IDateTimeRange dateTimeRange);
         Item GetItemById(int itemId);
         void CreateItem(Item item);
         void UpdateItem(Item item);
