@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
+using SMS.Generic;
 using SMS.Interfaces;
 using SMS.Models;
 
@@ -15,9 +16,12 @@ namespace SMS.Services
             _dbContext = dbContext;
         }
 
-        public IList<Transaction> GetAllTransactions()
+        public IList<Transaction> GetAllTransactions(IDateTimeRange dateTimeRange)
         {
-            return _dbContext.Get<Transaction>(t => t.DeletedAt == null)
+            var startTime = dateTimeRange.From;
+            var endTime = dateTimeRange.To;
+
+            return _dbContext.Get<Transaction>(i => i.DeletedAt == null && i.CreatedAt <= endTime && i.CreatedAt >= startTime)
                              .Include(t => t.Customer)
                              .Include(t => t.Invoice)
                              .Include(t => t.TransactionItems)
