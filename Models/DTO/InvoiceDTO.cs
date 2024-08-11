@@ -49,7 +49,7 @@
 
         public class CustomItemDTO
         {
-
+            public int itemId { get; set; }
             public string? ItemDescription { get; set; }
             public decimal? ItemCaratage { get; set; }
             public decimal? ItemGoldWeight { get; set; }
