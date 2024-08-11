@@ -117,26 +117,44 @@ namespace SMS.Controllers
                 // Create a new item
                 foreach (var item in request.Items)
                 {
-                    var itemDto = new Item
+                    if (item.itemId == null || item.itemId == 0)
                     {
-                        ItemDescription = item.ItemDescription,
-                        ItemCaratage = item.ItemCaratage,
-                        ItemGoldWeight = item.ItemGoldWeight,
-                        ItemValue = item.ItemValue,
-                        Status = 1,
-                        CustomerId = Customer.CustomerId,
-                    };
 
-                    var newItem = _mapper.Map<Item>(itemDto);
-                    _itemService.CreateItem(newItem);
+                        var itemDto = new Item
+                        {
+                            ItemDescription = item.ItemDescription,
+                            ItemCaratage = item.ItemCaratage,
+                            ItemGoldWeight = item.ItemGoldWeight,
+                            ItemValue = item.ItemValue,
+                            Status = 1,
+                            CustomerId = Customer.CustomerId,
+                        };
 
-                    var transactionItem = new TransactionItem
+                        var newItem = _mapper.Map<Item>(itemDto);
+                        _itemService.CreateItem(newItem);
+
+                        var transactionItem = new TransactionItem
+                        {
+                            TransactionId = transaction.TransactionId,
+                            ItemId = newItem.ItemId
+                        };
+
+                        _transactionItemService.CreateTransactionItem(transactionItem);
+                    }
+                    else
                     {
-                        TransactionId = transaction.TransactionId,
-                        ItemId = newItem.ItemId
-                    };
+                         var transactionItem = new TransactionItem
+                        {
+                            TransactionId = transaction.TransactionId,
+                            ItemId = item.itemId
+                        };
 
-                    _transactionItemService.CreateTransactionItem(transactionItem);
+                        _transactionItemService.CreateTransactionItem(transactionItem);
+
+
+                    }
+                    
+                  
                 }
           
               
