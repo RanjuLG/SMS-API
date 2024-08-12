@@ -16,13 +16,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowSpecificOrigin",
-                      builder =>
-                      {
-                          builder.WithOrigins("http://localhost:4200")
-                                 .AllowAnyHeader()
-                                 .AllowAnyMethod();
-                      });
+    options.AddPolicy("CorsPolicy",
+       builder => builder
+       .AllowAnyOrigin()
+       .AllowAnyMethod()
+       .AllowAnyHeader());
 });
 
 // Configure Swagger
@@ -97,9 +95,9 @@ if (app.Environment.IsDevelopment())
     app.UseDeveloperExceptionPage();
 }
 
+app.UseCors("CorsPolicy");
 app.UseHttpsRedirection();
 app.UseRouting();
-app.UseCors("AllowSpecificOrigin");
 app.UseAuthentication();  // Enable authentication middleware
 app.UseAuthorization();   // Enable authorization middleware
 
