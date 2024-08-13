@@ -76,7 +76,7 @@ namespace SMS.Controllers
 
             if (result.Succeeded)
             {
-                await _userManager.AddToRoleAsync(user, model.Role);
+                await _userManager.AddToRoleAsync(user, model.Roles[0]);
                 return Ok(new { message = "User created successfully" });
             }
 
@@ -147,7 +147,7 @@ namespace SMS.Controllers
             return Ok(userDetailsList);
         }
 
-        [HttpPut("{userId}")]
+        [HttpPut("user/{userId}")]
         public async Task<IActionResult> UpdateUser(string userId, [FromBody] UserDTO userDto)
         {
             var user = await _userManager.FindByIdAsync(userId);
@@ -165,8 +165,8 @@ namespace SMS.Controllers
 
             // Update user's roles
             var currentRoles = await _userManager.GetRolesAsync(user);
-            var rolesToAdd = new List<string> { userDto.Role }.Except(currentRoles);
-            var rolesToRemove = currentRoles.Except(new List<string> { userDto.Role });
+            var rolesToAdd = new List<string> { userDto.Roles[0] }.Except(currentRoles);
+            var rolesToRemove = currentRoles.Except(new List<string> { userDto.Roles[0] });
 
             var addRoleResult = await _userManager.AddToRolesAsync(user, rolesToAdd);
             if (!addRoleResult.Succeeded)
@@ -179,22 +179,35 @@ namespace SMS.Controllers
             return Ok(new { message = "User updated successfully" });
         }
 
-        [HttpDelete("{userId}")]
-        public async Task<IActionResult> DeleteUser(string userId)
+        [HttpDelete("users/delete-multiple")]
+        public async Task<IActionResult> DeleteUser([FromBody] List<string> userIds)
         {
-            var user = await _userManager.FindByIdAsync(userId);
-
-            if (user == null)
-                return NotFound("User not found");
-
-            var result = await _userManager.DeleteAsync(user);
-
-            if (result.Succeeded)
+            foreach(var userId in userIds)
             {
-                return Ok(new { message = "User deleted successfully" });
+
+                var user = await _userManager.FindByIdAsync(userId);
+                if (user == null)
+                {
+                    continue;
+                }
+
+                var result = await _userManager.DeleteAsync(user);
+
+
+                if (result.Succeeded)
+                {
+                    continue;
+                }
+                else
+                {
+
+                    //log
+                }
+
             }
 
-            return BadRequest(result.Errors);
+            return Ok(new { message = "Users deleted successfully" });
+
         }
     }
 }
