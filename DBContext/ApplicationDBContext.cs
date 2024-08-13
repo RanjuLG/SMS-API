@@ -1,15 +1,18 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using SMS.Models;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using static SMS.DBContext.ApplicationDbContext;
 
 namespace SMS.DBContext
 {
-    public class ApplicationDbContext : DbContext
+    public class ApplicationDbContext : IdentityDbContext<ApplicationUser> // Change from DbContext to IdentityDbContext
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-            : base(options)
+                    : base(options)
         {
         }
 
@@ -149,5 +152,7 @@ namespace SMS.DBContext
             int nextInvoiceNumber = lastInvoice == null ? 1 : lastInvoice.InvoiceId + 1;
             return $"INVO{nextInvoiceNumber:D3}";
         }
+
+
     }
 }

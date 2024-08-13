@@ -126,7 +126,7 @@ namespace SMS.Controllers
                             ItemCaratage = item.ItemCaratage,
                             ItemGoldWeight = item.ItemGoldWeight,
                             ItemValue = item.ItemValue,
-                            Status = 1,
+                            Status = 0,
                             CustomerId = Customer.CustomerId,
                         };
 
