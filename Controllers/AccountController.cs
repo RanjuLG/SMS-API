@@ -25,7 +25,7 @@ namespace SMS.Controllers
             _configuration = configuration;
         }
 
-        [HttpPost("register/{token}")]
+        [HttpPost("register")]
         [AllowAnonymous] // Allow anonymous access for registration
         public async Task<IActionResult> Register([FromBody] UserModel model, string token)
         {
