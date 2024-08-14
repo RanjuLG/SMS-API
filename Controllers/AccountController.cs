@@ -25,7 +25,7 @@ namespace SMS.Controllers
             _configuration = configuration;
         }
 
-        [HttpPost("register/{token}")]
+        [HttpPost("register")]
         [AllowAnonymous] // Allow anonymous access for registration
         public async Task<IActionResult> Register([FromBody] UserModel model, string token)
         {
@@ -110,7 +110,7 @@ namespace SMS.Controllers
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-            var expires = DateTime.Now.AddDays(1);
+            var expires = DateTime.Now.AddHours(1);
 
             var token = new JwtSecurityToken(
                 _configuration["Jwt:Issuer"],
