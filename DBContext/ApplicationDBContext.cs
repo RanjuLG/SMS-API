@@ -21,7 +21,11 @@ namespace SMS.DBContext
         public DbSet<Item> Items { get; set; }
         public DbSet<Transaction> Transactions { get; set; }
         public DbSet<TransactionItem> TransactionItems { get; set; }
-        public DbSet<GoldCaratage> GoldCaratages { get; set; }
+        public DbSet<Karat> Karats { get; set; }
+        public DbSet<LoanPeriod> LoanPeriods { get; set; }
+        public DbSet<Pricing> Pricings { get; set; }
+
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -90,28 +94,22 @@ namespace SMS.DBContext
                 .Property(i => i.ItemValue)
                 .HasColumnType("decimal(18,2)");
 
-            modelBuilder.Entity<GoldCaratage>()
-                .Property(gc => gc.Caratage)
-                .HasColumnType("decimal(18,2)");
 
-            modelBuilder.Entity<GoldCaratage>()
-                .Property(gc => gc.OneMonth)
-                .HasColumnType("decimal(18,2)");
+            modelBuilder.Entity<Pricing>()
+                .HasOne(p => p.Karat)
+                .WithMany(k => k.Pricings)
+                .HasForeignKey(p => p.KaratId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-            modelBuilder.Entity<GoldCaratage>()
-                .Property(gc => gc.ThreeMonth)
-                .HasColumnType("decimal(18,2)");
-
-            modelBuilder.Entity<GoldCaratage>()
-                .Property(gc => gc.SixMonth)
-                .HasColumnType("decimal(18,2)");
-
-            modelBuilder.Entity<GoldCaratage>()
-                .Property(gc => gc.TwelveMonth)
-                .HasColumnType("decimal(18,2)");
+            modelBuilder.Entity<Pricing>()
+                .HasOne(p => p.LoanPeriod)
+                .WithMany(lp => lp.Pricings)
+                .HasForeignKey(p => p.LoanPeriodId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             base.OnModelCreating(modelBuilder);
-        }
+        
+    }
 
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
