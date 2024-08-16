@@ -94,6 +94,7 @@ namespace SMS.DBContext
                 .Property(i => i.ItemValue)
                 .HasColumnType("decimal(18,2)");
 
+            /*
 
             modelBuilder.Entity<Pricing>()
                 .HasOne(p => p.Karat)
@@ -106,6 +107,7 @@ namespace SMS.DBContext
                 .WithMany(lp => lp.Pricings)
                 .HasForeignKey(p => p.LoanPeriodId)
                 .OnDelete(DeleteBehavior.Cascade);
+            */
 
             base.OnModelCreating(modelBuilder);
         

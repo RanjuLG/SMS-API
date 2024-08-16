@@ -7,7 +7,7 @@ using SMS.Models;
 
 namespace SMS.Services
 {
-    public class KaratageService
+    public class KaratageService:IKaratageService
     {
         private readonly IRepository _dbContext;
 
@@ -57,6 +57,7 @@ namespace SMS.Services
         // Create a new LoanPeriod
         public void CreateLoanPeriod(LoanPeriod loanPeriod)
         {
+
             _dbContext.Create(loanPeriod);
             _dbContext.Save();
         }

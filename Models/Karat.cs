@@ -6,9 +6,10 @@ namespace SMS.Models
 {
     public class Karat
     {
+        [Key]
         public int KaratId { get; set; }
-        public string KaratValue { get; set; }
-        public virtual ICollection<Pricing> Pricings { get; set; }
+        public int KaratValue { get; set; }
+      //  public virtual ICollection<Pricing> Pricings { get; set; }
 
     }
 }

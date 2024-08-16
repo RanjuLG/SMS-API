@@ -1,6 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Mvc;
 using SMS.Interfaces;
 using SMS.Models;
+using SMS.Models.DTO;
+using SMS.Services;
 using System.Collections.Generic;
 
 namespace SMS.Controllers
@@ -10,10 +13,12 @@ namespace SMS.Controllers
     public class KaratageController : ControllerBase
     {
         private readonly IKaratageService _karatageService;
+        private readonly IMapper _mapper;
 
-        public KaratageController(IKaratageService karatageService)
+        public KaratageController(IKaratageService karatageService, IMapper mapper)
         {
             _karatageService = karatageService;
+            _mapper = mapper;
         }
 
         // Karatage Operations
@@ -37,8 +42,19 @@ namespace SMS.Controllers
         }
 
         [HttpPost("karats")]
-        public ActionResult CreateKarat([FromBody] Karat karat)
+        public ActionResult CreateKarat([FromBody] KaratDTO karatDto)
         {
+            var isKaratExists = _karatageService.GetAllKarats().Where(x => x.KaratValue == karatDto.KaratValue);
+            if (isKaratExists.Any()) 
+            {
+                return Ok("Karat already exists."); 
+            
+            }
+            var karat = new Karat
+            {
+                KaratValue = karatDto.KaratValue,
+            };
+
             _karatageService.CreateKarat(karat);
             return Ok();
         }
@@ -90,8 +106,18 @@ namespace SMS.Controllers
         }
 
         [HttpPost("loanperiods")]
-        public ActionResult CreateLoanPeriod([FromBody] LoanPeriod loanPeriod)
+        public ActionResult CreateLoanPeriod([FromBody] LoanPeriodDTO loanPeriodDto)
         {
+            var isPeriodExist = _karatageService.GetAllLoanPeriods().Where(a => a.Period == loanPeriodDto.Period);
+
+            if (isPeriodExist.Any()) { return Ok("Period already exists"); }
+
+            var loanPeriod = new LoanPeriod
+            {
+                Period = loanPeriodDto.Period
+
+            };
+
             _karatageService.CreateLoanPeriod(loanPeriod);
             return Ok();
         }
@@ -143,8 +169,28 @@ namespace SMS.Controllers
         }
 
         [HttpPost("pricings")]
-        public ActionResult CreatePricing([FromBody] Pricing pricing)
+        public ActionResult CreatePricing([FromBody] PricingDTO pricingDTO)
         {
+            var isKaratExists =_karatageService.GetKaratById(pricingDTO.KaratId);
+            if(isKaratExists == null) {  return NotFound("Karat doesnot exist."); }
+            var isPeriodExists = _karatageService.GetLoanPeriodById(pricingDTO.LoanPeriodId);
+            if (isPeriodExists == null) { return NotFound("Period doesnot exist."); }
+
+            var isPricingExists = _karatageService.GetAllPricings().Where(x => x.LoanPeriodId == pricingDTO.LoanPeriodId && x.KaratId == pricingDTO.KaratId);
+            if (isPricingExists != null)
+            {
+                return BadRequest("Pricing already exists.");
+
+            };
+
+            var pricing = new Pricing
+            {
+                Price = pricingDTO.Price,
+                KaratId = pricingDTO.KaratId,
+                LoanPeriodId = pricingDTO.LoanPeriodId,
+
+            };
+
             _karatageService.CreatePricing(pricing);
             return Ok();
         }

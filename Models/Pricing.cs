@@ -1,7 +1,11 @@
-﻿namespace SMS.Models
+﻿using System;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+namespace SMS.Models
 {
     public class Pricing
     {
+        [Key]
         public int PricingId { get; set; }
         public decimal Price { get; set; } // The price offering for this combination of Karat and LoanPeriod
 
