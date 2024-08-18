@@ -27,5 +27,11 @@
         // Navigation property - make it virtual for lazy loading
        // public virtual LoanPeriod LoanPeriod { get; set; }
     }
+    public class PricingPutDTO
+    {
+        public decimal Price { get; set; } // The price offering for this combination of Karat and LoanPeriod
+
+       
+    }
 
 }

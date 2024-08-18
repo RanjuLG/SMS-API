@@ -172,12 +172,16 @@ namespace SMS.Controllers
         public ActionResult CreatePricing([FromBody] PricingDTO pricingDTO)
         {
             var isKaratExists =_karatageService.GetKaratById(pricingDTO.KaratId);
+
             if(isKaratExists == null) {  return NotFound("Karat doesnot exist."); }
+
             var isPeriodExists = _karatageService.GetLoanPeriodById(pricingDTO.LoanPeriodId);
+
             if (isPeriodExists == null) { return NotFound("Period doesnot exist."); }
 
-            var isPricingExists = _karatageService.GetAllPricings().Where(x => x.LoanPeriodId == pricingDTO.LoanPeriodId && x.KaratId == pricingDTO.KaratId);
-            if (isPricingExists != null)
+            var isPricingExists = _karatageService.GetAllPricings().Where(x => x.LoanPeriodId == pricingDTO.LoanPeriodId && x.KaratId == pricingDTO.KaratId).ToList();
+
+            if (isPricingExists.Count() > 0)
             {
                 return BadRequest("Pricing already exists.");
 
@@ -196,17 +200,21 @@ namespace SMS.Controllers
         }
 
         [HttpPut("pricings/{pricingId}")]
-        public ActionResult UpdatePricing(int pricingId, [FromBody] Pricing pricing)
+        public ActionResult UpdatePricing(int pricingId, [FromBody] PricingPutDTO pricingDto)
         {
             var existingPricing = _karatageService.GetPricingById(pricingId);
+
             if (existingPricing == null)
             {
-                return NotFound();
+                return NotFound("Pricing does not exist");
             }
 
-            _karatageService.UpdatePricing(pricing);
+            existingPricing.Price = pricingDto.Price;
+
+            _karatageService.UpdatePricing(existingPricing);
             return Ok();
         }
+
 
         [HttpDelete("pricings/{pricingId}")]
         public ActionResult DeletePricing(int pricingId)
