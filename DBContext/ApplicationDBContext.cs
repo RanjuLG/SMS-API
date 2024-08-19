@@ -25,6 +25,8 @@ namespace SMS.DBContext
         public DbSet<LoanPeriod> LoanPeriods { get; set; }
         public DbSet<Pricing> Pricings { get; set; }
 
+        public DbSet<InvoiceTypes> InvoiceTypes { get; set; }
+
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -108,6 +110,25 @@ namespace SMS.DBContext
                 .HasForeignKey(p => p.LoanPeriodId)
                 .OnDelete(DeleteBehavior.Cascade);
             */
+            modelBuilder.Entity<InvoiceTypes>()
+               .Property(b => b.InvoiceTypeNumber)
+               .HasColumnName("InvoiceTypeNumber")
+               .IsRequired();
+
+            modelBuilder.Entity<InvoiceTypes>()
+                .Property(b => b.InvoiceTypeName)
+                .HasColumnName("InvoiceTypeName")
+                .IsRequired()
+                .HasMaxLength(50); // Adjust length as necessary
+
+            // Additional configurations can go here
+
+            // Seed data example
+            modelBuilder.Entity<InvoiceTypes>().HasData(
+                new InvoiceTypes { InvoiceTypeId = 1, InvoiceTypeNumber = 1, InvoiceTypeName = "Initial Pawn Invoice" },
+                new InvoiceTypes { InvoiceTypeId = 2, InvoiceTypeNumber = 2, InvoiceTypeName = "Installment Payment Invoice" },
+                new InvoiceTypes { InvoiceTypeId = 3, InvoiceTypeNumber = 3, InvoiceTypeName = "Settlement Invoice" }
+            );
 
             base.OnModelCreating(modelBuilder);
         

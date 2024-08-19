@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SMS.DBContext;
 
@@ -11,9 +12,11 @@ using SMS.DBContext;
 namespace SMS.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240819070821_123123")]
+    partial class _123123
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -293,9 +296,6 @@ namespace SMS.Migrations
                     b.Property<string>("InvoiceNo")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("InvoiceTypeId")
-                        .HasColumnType("int");
-
                     b.Property<int?>("Status")
                         .HasColumnType("int");
 
@@ -310,55 +310,10 @@ namespace SMS.Migrations
 
                     b.HasKey("InvoiceId");
 
-                    b.HasIndex("InvoiceTypeId");
-
                     b.HasIndex("TransactionId")
                         .IsUnique();
 
                     b.ToTable("Invoices");
-                });
-
-            modelBuilder.Entity("SMS.Models.InvoiceTypes", b =>
-                {
-                    b.Property<int>("InvoiceTypeId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("InvoiceTypeId"));
-
-                    b.Property<string>("InvoiceTypeName")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasColumnName("InvoiceTypeName");
-
-                    b.Property<int>("InvoiceTypeNumber")
-                        .HasColumnType("int")
-                        .HasColumnName("InvoiceTypeNumber");
-
-                    b.HasKey("InvoiceTypeId");
-
-                    b.ToTable("InvoiceTypes");
-
-                    b.HasData(
-                        new
-                        {
-                            InvoiceTypeId = 1,
-                            InvoiceTypeName = "Initial Pawn Invoice",
-                            InvoiceTypeNumber = 1
-                        },
-                        new
-                        {
-                            InvoiceTypeId = 2,
-                            InvoiceTypeName = "Installment Payment Invoice",
-                            InvoiceTypeNumber = 2
-                        },
-                        new
-                        {
-                            InvoiceTypeId = 3,
-                            InvoiceTypeName = "Settlement Invoice",
-                            InvoiceTypeNumber = 3
-                        });
                 });
 
             modelBuilder.Entity("SMS.Models.Item", b =>
@@ -594,19 +549,11 @@ namespace SMS.Migrations
 
             modelBuilder.Entity("SMS.Models.Invoice", b =>
                 {
-                    b.HasOne("SMS.Models.InvoiceTypes", "InvoiceTypes")
-                        .WithMany()
-                        .HasForeignKey("InvoiceTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("SMS.Models.Transaction", "Transaction")
                         .WithOne("Invoice")
                         .HasForeignKey("SMS.Models.Invoice", "TransactionId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
-
-                    b.Navigation("InvoiceTypes");
 
                     b.Navigation("Transaction");
                 });
