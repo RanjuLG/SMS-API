@@ -163,6 +163,7 @@ namespace SMS.Controllers
                 var invoice = new Invoice
                 {
                     InvoiceNo = _invoiceService.GenerateInvoiceNumber(),
+                    InvoiceTypeId = request.InvoiceTypeId,
                     TransactionId = transaction.TransactionId,
                     DateGenerated = DateTime.Now,
                     Status = 1,
@@ -170,6 +171,7 @@ namespace SMS.Controllers
                     //UpdatedBy = request.UpdatedBy,
                     CreatedAt = DateTime.Now,
                     UpdatedAt = DateTime.Now
+                    
                 };
 
                 _invoiceService.CreateInvoice(invoice);
@@ -247,6 +249,7 @@ namespace SMS.Controllers
                 var invoiceDTOs = invoices.Select(invoice => new GetInvoiceDTO
                 {
                     InvoiceId = invoice.InvoiceId,
+                    InvoiceTypeId = invoice.InvoiceTypeId,
                     InvoiceNo = invoice.InvoiceNo,
                     TransactionId = invoice.TransactionId,
                     CustomerNIC = customerNIC,

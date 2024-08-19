@@ -24,6 +24,7 @@ namespace SMS.Services
         {
             var invoices = _dbContext.Get<Invoice>(i => i.DeletedAt == null)
                 .Include(i => i.Transaction)
+                .Include(i => i.InvoiceTypeId)
                 .ToList();
 
             return invoices;
@@ -49,6 +50,7 @@ namespace SMS.Services
                 var invoice = new GetInvoiceDTO
                 {
                     InvoiceId = invoice_.InvoiceId,
+                    InvoiceTypeId = invoice_.InvoiceTypeId,
                     InvoiceNo = invoice_.InvoiceNo,
                     TransactionId = transaction.TransactionId,
                     CustomerNIC = transaction.Customer?.CustomerNIC,
@@ -76,6 +78,7 @@ namespace SMS.Services
             var invoice = new GetInvoiceDTO
             {
                 InvoiceId = invoice_.InvoiceId,
+                InvoiceTypeId = invoice_.InvoiceTypeId,
                 InvoiceNo = invoice_.InvoiceNo,
                 TransactionId = transaction.TransactionId,
                 CustomerNIC = transaction.Customer?.CustomerNIC,
