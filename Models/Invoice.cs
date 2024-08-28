@@ -9,7 +9,7 @@ namespace SMS.Models
         [Key]
         public int InvoiceId { get; set; }
         [ForeignKey("InvoiceTypes")]
-        public int InvoiceTypeId { get; set; }
+        public InvoiceType InvoiceTypeId { get; set; }
 
         [ForeignKey("Transaction")]
         public int TransactionId { get; set; }
@@ -24,7 +24,15 @@ namespace SMS.Models
         public DateTime? DeletedAt { get; set; }
 
         // Navigation Properties
-        public virtual InvoiceTypes InvoiceTypes { get; set; }
+        //public virtual InvoiceType InvoiceType { get; set; }
         public virtual Transaction Transaction { get; set; }
     }
+}
+
+
+public enum InvoiceType
+{
+    InitialPawnInvoice = 1,
+    InstallmentPaymentInvoice = 2,
+    SettlementInvoice = 3
 }

@@ -6,7 +6,7 @@
         {
             public int InvoiceId { get; set; }
             public string InvoiceNo { get; set; }
-            public int InvoiceTypeId { get; set; }
+            public InvoiceType InvoiceTypeId { get; set; }
             public DateTime DateGenerated { get; set; }
             public string CustomerNIC { get; set; }
             public string ItemDescription { get; set; }
@@ -23,7 +23,7 @@
             public int InvoiceId { get; set; }
 
             public string InvoiceNo { get; set; }
-            public int InvoiceTypeId { get; set; }
+            public InvoiceType InvoiceTypeId { get; set; }
             public int TransactionId { get; set; }
             public string CustomerNIC { get; set; }
             public decimal? TotalAmount { get; set; }
@@ -36,7 +36,7 @@
 
         public class CreateInvoiceDTO
         {
-            public int InvoiceTypeId { get; set; }
+            public InvoiceType InvoiceTypeId { get; set; }
             public CreateCustomerDTO Customer { get; set; }
            
             public CustomItemDTO[] Items { get; set; }

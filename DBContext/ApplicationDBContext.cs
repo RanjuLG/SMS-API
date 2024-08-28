@@ -26,6 +26,7 @@ namespace SMS.DBContext
         public DbSet<Pricing> Pricings { get; set; }
 
         public DbSet<InvoiceTypes> InvoiceTypes { get; set; }
+        public DbSet<Installment> Installments { get; set; }
 
 
 

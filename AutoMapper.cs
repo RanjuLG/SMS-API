@@ -82,6 +82,14 @@ namespace SMS
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.CustomerId, opt => opt.Ignore());
+
+
+            // Mapping for Installment
+            CreateMap<Installment, GetInstallmentDTO>();
+            CreateMap<GetInstallmentDTO, Installment>();
+
+            CreateMap<Installment, CreateInstallmentDTO>();
+            CreateMap<CreateInstallmentDTO, Installment>();
         }
     }
 }

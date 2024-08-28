@@ -75,6 +75,7 @@ namespace SMS.Controllers
         {
             try
             {
+
                 // Check if the customer exists
                 var existingCustomer = _customerService.GetCustomerByNIC(request.Customer.CustomerNIC);
 
@@ -101,84 +102,166 @@ namespace SMS.Controllers
 
                 var Customer = _customerService.GetCustomerByNIC(request.Customer.CustomerNIC);
 
-                // Create a new transaction
-                var transaction = new Transaction
+                if(request.InvoiceTypeId == InvoiceType.InitialPawnInvoice)
                 {
-                    CustomerId = customer.CustomerId,
-                    SubTotal = request.SubTotal,
-                    InterestRate = request.Interest,
-                    TotalAmount = request.TotalAmount,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
-                };
-
-                _transactionService.CreateTransaction(transaction);
-
-                // Create a new item
-                foreach (var item in request.Items)
-                {
-                    if (item.itemId == null || item.itemId == 0)
+                    // Create a new transaction
+                    var transaction = new Transaction
                     {
+                        CustomerId = customer.CustomerId,
+                        SubTotal = request.SubTotal,
+                        InterestRate = request.Interest,
+                        TotalAmount = request.TotalAmount,
+                        TransactionType = TransactionType.LoanIssuance,
+                        CreatedAt = DateTime.Now,
+                        UpdatedAt = DateTime.Now
+                    };
 
-                        var itemDto = new Item
-                        {
-                            ItemDescription = item.ItemDescription,
-                            ItemCaratage = item.ItemCaratage,
-                            ItemGoldWeight = item.ItemGoldWeight,
-                            ItemValue = item.ItemValue,
-                            Status = 0,
-                            CustomerId = Customer.CustomerId,
-                        };
+                    _transactionService.CreateTransaction(transaction);
 
-                        var newItem = _mapper.Map<Item>(itemDto);
-                        _itemService.CreateItem(newItem);
-
-                        var transactionItem = new TransactionItem
-                        {
-                            TransactionId = transaction.TransactionId,
-                            ItemId = newItem.ItemId
-                        };
-
-                        _transactionItemService.CreateTransactionItem(transactionItem);
-                    }
-                    else
+                    // Create a new item
+                    foreach (var item in request.Items)
                     {
-                         var transactionItem = new TransactionItem
+                        if (item.itemId == null || item.itemId == 0)
                         {
-                            TransactionId = transaction.TransactionId,
-                            ItemId = item.itemId
-                        };
 
-                        _transactionItemService.CreateTransactionItem(transactionItem);
+                            var itemDto = new Item
+                            {
+                                ItemDescription = item.ItemDescription,
+                                ItemCaratage = item.ItemCaratage,
+                                ItemGoldWeight = item.ItemGoldWeight,
+                                ItemValue = item.ItemValue,
+                                Status = 0,
+                                CustomerId = Customer.CustomerId,
+                            };
+
+                            var newItem = _mapper.Map<Item>(itemDto);
+                            _itemService.CreateItem(newItem);
+
+                            var transactionItem = new TransactionItem
+                            {
+                                TransactionId = transaction.TransactionId,
+                                ItemId = newItem.ItemId
+                            };
+
+                            _transactionItemService.CreateTransactionItem(transactionItem);
+                        }
+                        else
+                        {
+                            var transactionItem = new TransactionItem
+                            {
+                                TransactionId = transaction.TransactionId,
+                                ItemId = item.itemId
+                            };
+
+                            _transactionItemService.CreateTransactionItem(transactionItem);
+
+
+                        }
 
 
                     }
-                    
-                  
+
+                    // Create a new invoice
+                    var invoice = new Invoice
+                    {
+                        InvoiceNo = _invoiceService.GenerateInvoiceNumber(),
+                        InvoiceTypeId = InvoiceType.InitialPawnInvoice,
+                        TransactionId = transaction.TransactionId,
+                        DateGenerated = DateTime.Now,
+                        Status = 1,
+                        //CreatedBy = request.CreatedBy,
+                        //UpdatedBy = request.UpdatedBy,
+                        CreatedAt = DateTime.Now,
+                        UpdatedAt = DateTime.Now
+
+                    };
+
+                    _invoiceService.CreateInvoice(invoice);
+
+                    var createdInvoice = _invoiceService.GetLastInvoice();
+
+                    return Ok(createdInvoice.InvoiceId);
                 }
-          
-              
-
-                // Create a new invoice
-                var invoice = new Invoice
+                else if (request.InvoiceTypeId == InvoiceType.InstallmentPaymentInvoice) 
                 {
-                    InvoiceNo = _invoiceService.GenerateInvoiceNumber(),
-                    InvoiceTypeId = request.InvoiceTypeId,
-                    TransactionId = transaction.TransactionId,
-                    DateGenerated = DateTime.Now,
-                    Status = 1,
-                    //CreatedBy = request.CreatedBy,
-                    //UpdatedBy = request.UpdatedBy,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
-                    
-                };
+                    // Create a new transaction
+                    var transaction = new Transaction
+                    {
+                        CustomerId = customer.CustomerId,
+                        SubTotal = request.SubTotal,
+                        InterestRate = request.Interest,
+                        TotalAmount = request.TotalAmount,
+                        TransactionType = TransactionType.InstallmentPayment,
+                        CreatedAt = DateTime.Now,
+                        UpdatedAt = DateTime.Now
+                    };
 
-                _invoiceService.CreateInvoice(invoice);
+                    _transactionService.CreateTransaction(transaction);
 
-                var createdInvoice = _invoiceService.GetLastInvoice();
 
-                return Ok(createdInvoice.InvoiceId);
+                    // Create a new invoice
+                    var invoice = new Invoice
+                    {
+                        InvoiceNo = _invoiceService.GenerateInvoiceNumber(),
+                        InvoiceTypeId = InvoiceType.InstallmentPaymentInvoice,
+                        TransactionId = transaction.TransactionId,
+                        DateGenerated = DateTime.Now,
+                        Status = 1,
+                        //CreatedBy = request.CreatedBy,
+                        //UpdatedBy = request.UpdatedBy,
+                        CreatedAt = DateTime.Now,
+                        UpdatedAt = DateTime.Now
+
+                    };
+
+                    _invoiceService.CreateInvoice(invoice);
+
+                    var createdInvoice = _invoiceService.GetLastInvoice();
+
+                    return Ok(createdInvoice.InvoiceId);
+                }
+
+                else 
+                {
+                    // Create a new transaction
+                    var transaction = new Transaction
+                    {
+                        CustomerId = customer.CustomerId,
+                        SubTotal = request.SubTotal,
+                        InterestRate = request.Interest,
+                        TotalAmount = request.TotalAmount,
+                        TransactionType = TransactionType.LoanClosure,
+                        CreatedAt = DateTime.Now,
+                        UpdatedAt = DateTime.Now
+                    };
+
+                    _transactionService.CreateTransaction(transaction);
+
+
+                    // Create a new invoice
+                    var invoice = new Invoice
+                    {
+                        InvoiceNo = _invoiceService.GenerateInvoiceNumber(),
+                        InvoiceTypeId = InvoiceType.SettlementInvoice,
+                        TransactionId = transaction.TransactionId,
+                        DateGenerated = DateTime.Now,
+                        Status = 1,
+                        //CreatedBy = request.CreatedBy,
+                        //UpdatedBy = request.UpdatedBy,
+                        CreatedAt = DateTime.Now,
+                        UpdatedAt = DateTime.Now
+
+                    };
+
+                    _invoiceService.CreateInvoice(invoice);
+
+                    var createdInvoice = _invoiceService.GetLastInvoice();
+
+                    return Ok(createdInvoice.InvoiceId);
+
+                }
+
+              
             }
             catch (Exception ex)
             {

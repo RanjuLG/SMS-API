@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SMS.DBContext;
 
@@ -11,9 +12,11 @@ using SMS.DBContext;
 namespace SMS.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240828183601_transactiontype")]
+    partial class transactiontype
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -346,6 +349,8 @@ namespace SMS.Migrations
 
                     b.HasKey("InvoiceId");
 
+                    b.HasIndex("InvoiceTypeId");
+
                     b.HasIndex("TransactionId")
                         .IsUnique();
 
@@ -647,11 +652,19 @@ namespace SMS.Migrations
 
             modelBuilder.Entity("SMS.Models.Invoice", b =>
                 {
+                    b.HasOne("SMS.Models.InvoiceTypes", "InvoiceTypes")
+                        .WithMany()
+                        .HasForeignKey("InvoiceTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("SMS.Models.Transaction", "Transaction")
                         .WithOne("Invoice")
                         .HasForeignKey("SMS.Models.Invoice", "TransactionId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
+
+                    b.Navigation("InvoiceTypes");
 
                     b.Navigation("Transaction");
                 });

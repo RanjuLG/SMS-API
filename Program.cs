@@ -76,6 +76,7 @@ builder.Services.AddTransient<IInvoiceService, InvoiceService>();
 builder.Services.AddTransient<ITransactionService, TransactionService>();
 builder.Services.AddTransient<ITransactionItemService, TransactionItemService>();
 builder.Services.AddTransient<IKaratageService, KaratageService>();
+builder.Services.AddTransient<IInstallmentService, InstallmentService>();
 builder.Services.AddTransient<IReadOnlyRepository, ReadOnlyRepository<ApplicationDbContext>>();
 
 var app = builder.Build();
