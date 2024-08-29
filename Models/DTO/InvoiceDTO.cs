@@ -21,7 +21,6 @@
         public class GetInvoiceDTO
         {
             public int InvoiceId { get; set; }
-
             public string InvoiceNo { get; set; }
             public InvoiceType InvoiceTypeId { get; set; }
             public int TransactionId { get; set; }
@@ -30,9 +29,10 @@
             public DateTime? DateGenerated { get; set; }
             public int? Status { get; set; }
 
-
-
+            // New Property
+            public int? LoanPeriod { get; set; } // e.g., "30 Days", "60 Days"
         }
+
 
         public class CreateInvoiceDTO
         {
@@ -47,7 +47,7 @@
             public decimal SubTotal { get; set; }
             public decimal Interest { get; set; }
             public decimal TotalAmount { get; set; }
-
+            public int? LoanPeriodId { get; set; }
 
         }
 

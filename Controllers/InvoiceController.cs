@@ -113,7 +113,8 @@ namespace SMS.Controllers
                         TotalAmount = request.TotalAmount,
                         TransactionType = TransactionType.LoanIssuance,
                         CreatedAt = DateTime.Now,
-                        UpdatedAt = DateTime.Now
+                        UpdatedAt = DateTime.Now,
+                       LoanPeriodId = request.LoanPeriodId,
                     };
 
                     _transactionService.CreateTransaction(transaction);

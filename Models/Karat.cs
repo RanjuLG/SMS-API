@@ -9,7 +9,7 @@ namespace SMS.Models
         [Key]
         public int KaratId { get; set; }
         public int KaratValue { get; set; }
-      //  public virtual ICollection<Pricing> Pricings { get; set; }
+      // public virtual ICollection<Pricing> Pricings { get; set; }
 
     }
 }

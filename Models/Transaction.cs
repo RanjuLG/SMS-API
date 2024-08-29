@@ -32,6 +32,7 @@ namespace SMS.Models
         public virtual LoanPeriod LoanPeriod { get; set; }
         public virtual ICollection<TransactionItem> TransactionItems { get; set; }
         public virtual Invoice Invoice { get; set; }
+        public virtual ICollection<Installment> Installments { get; set; }
     }
 
 }

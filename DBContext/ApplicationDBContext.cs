@@ -22,12 +22,11 @@ namespace SMS.DBContext
         public DbSet<Transaction> Transactions { get; set; }
         public DbSet<TransactionItem> TransactionItems { get; set; }
         public DbSet<Karat> Karats { get; set; }
-        public DbSet<LoanPeriod> LoanPeriods { get; set; }
         public DbSet<Pricing> Pricings { get; set; }
 
         public DbSet<InvoiceTypes> InvoiceTypes { get; set; }
         public DbSet<Installment> Installments { get; set; }
-
+        public DbSet<LoanPeriod> LoanPeriods { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

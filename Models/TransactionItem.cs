@@ -12,6 +12,8 @@ namespace SMS.Models
         public int TransactionId { get; set; }
         [ForeignKey("Item")]
         public int ItemId { get; set; }
+
+        public decimal? PawnValue { get; set; } // Capture pawn value at transaction time
         public DateTime? DeletedAt { get; set; }
 
         // Navigation Properties
