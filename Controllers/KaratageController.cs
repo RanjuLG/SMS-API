@@ -26,7 +26,7 @@ namespace SMS.Controllers
         [HttpGet("karats")]
         public ActionResult<IEnumerable<Karat>> GetAllKarats()
         {
-            var karats = _karatageService.GetAllKarats();
+            var karats = _karatageService.GetAllKarats().OrderBy(x=> x.KaratValue);
             return Ok(karats);
         }
 
