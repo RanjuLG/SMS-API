@@ -77,13 +77,13 @@ namespace SMS.Controllers
             }
         }
         [HttpPost]
-        [Route("")]
-        public ActionResult<CreateInvoiceDTO> CreateInvoice([FromBody] CreateInvoiceDTO request)
+        [Route("{initialInvoiceNumber}/{installmentNumber}")]
+        public ActionResult<CreateInvoiceDTO> CreateInvoice([FromBody] CreateInvoiceDTO request, string initialInvoiceNumber, int installmentNumber)
         {
             try
             {
                 // Process the invoice using the business logic method
-                var createdInvoiceId = _businessLogic.ProcessInvoice(request);
+                var createdInvoiceId = _businessLogic.ProcessInvoice(request, initialInvoiceNumber, installmentNumber);
 
                 if (createdInvoiceId == null)
                 {
@@ -91,26 +91,22 @@ namespace SMS.Controllers
                     return BadRequest("Failed to create invoice.");
                 }
 
-                // Assuming ProcessInvoice returns an integer ID of the created invoice
-                // Fetch the created invoice details to return
-              //  var createdInvoice = _invoiceService.GetInvoiceById(createdInvoiceId);
+                // Fetch the created invoice details to return (uncomment if needed)
+                // var createdInvoice = _invoiceService.GetInvoiceById(createdInvoiceId);
 
-                // If the invoice creation was successful, return the created invoice details
+                // If the invoice creation was successful, return the created invoice details (or Ok if not fetching details)
+                // return Ok(createdInvoice); // Uncomment if fetching and returning details
                 return Ok();
             }
             catch (Exception ex)
             {
                 // Log the exception (assuming a logger is available)
-             //   _logger.LogError(ex, "Error occurred while creating the invoice");
+                //_logger.LogError(ex, "Error occurred while creating the invoice"); // Uncomment if you have a logger
 
                 // Return an internal server error status code with a generic message
                 return StatusCode(500, "Internal server error");
             }
         }
-
-
-
-
 
         [HttpPut]
         [Route("{invoiceId}")]

@@ -8,6 +8,8 @@ namespace SMS.Models
         [Key]
         public int InstallmentId { get; set; }
 
+        public int InstallmentNumber { get; set; }
+
         [ForeignKey("Transaction")]
         public int TransactionId { get; set; }
         // Foreign key to Loan

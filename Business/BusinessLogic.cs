@@ -4,6 +4,7 @@ using SMS.Interfaces;
 using SMS.Models.DTO.SMS.Models.DTO;
 using SMS.Models.DTO;
 using SMS.Models;
+using SMS.Migrations;
 
 namespace SMS.Business
 {
@@ -16,6 +17,7 @@ namespace SMS.Business
         private readonly IInvoiceService _invoiceService;
         private readonly ILoanService _loanService;
         private readonly IKaratageService _karatageService;
+        private readonly IInstallmentService _installmentService;
         private readonly IMapper _mapper;
 
         public BusinessLogic(
@@ -26,6 +28,7 @@ namespace SMS.Business
             IInvoiceService invoiceService,
             ILoanService loanService,
             IKaratageService karatageService,
+            IInstallmentService installmentService,
             IMapper mapper)
         {
             _customerService = customerService;
@@ -35,10 +38,11 @@ namespace SMS.Business
             _invoiceService = invoiceService;
             _loanService = loanService;
             _karatageService = karatageService;
+            _installmentService = installmentService;
             _mapper = mapper;
         }
 
-        public IActionResult ProcessInvoice(CreateInvoiceDTO request)
+        public IActionResult ProcessInvoice(CreateInvoiceDTO request,string initialInvoiceNumber, int installmentNumber)
         {
             try
             {
@@ -49,6 +53,7 @@ namespace SMS.Business
                 Transaction transaction;
                 Invoice invoice;
                 Loan loan;
+                Installment installment;
 
                 switch (request.InvoiceTypeId)
                 {
@@ -62,6 +67,7 @@ namespace SMS.Business
 
                     case InvoiceType.InstallmentPaymentInvoice:
                         transaction = CreateTransaction(customer.CustomerId, request.SubTotal, request.Interest, request.TotalAmount, TransactionType.InstallmentPayment);
+                        installment = CreateInstallment(initialInvoiceNumber, transaction.TransactionId, installmentNumber);
                         invoice = CreateInvoice(transaction.TransactionId, InvoiceType.InstallmentPaymentInvoice);
                         break;
 
@@ -174,6 +180,41 @@ namespace SMS.Business
             _invoiceService.CreateInvoice(invoice);
             return invoice;
         }
+        private Installment CreateInstallment(string InitialInvoiceNumber, int transactionId, int installmentNumber)
+        {
+            //var initialLoan = null;
+            int loanId = 0;
+            var intialInvoice = _invoiceService.GetInvoiceByInvoiceNo(InitialInvoiceNumber);
+            var transaction = _transactionService.GetTransactionById(transactionId);
+            var initialLoan = new Loan();
+
+            if(intialInvoice != null)
+            {
+                initialLoan = _loanService.GetAllLoans().Where(x => x.TransactionId == transactionId).ToList().FirstOrDefault();
+               
+            }
+
+            if (intialInvoice != null && initialLoan != null)
+            {
+
+                var installment = new Installment
+                {
+                    TransactionId = transactionId,
+                    LoanId = initialLoan.LoanId,
+                    InstallmentNumber = installmentNumber,
+                    AmountPaid = transaction.TotalAmount,
+                    DueDate = initialLoan.StartDate.AddMonths(installmentNumber),
+                    PaymentDate = DateTime.Now,
+                };
+
+                _installmentService.CreateInstallment(installment);
+
+                return installment;
+            };
+
+            return null;
+
+        }
 
         private Loan CreateLoan (int TransactionID,DateTime StartDate,int? loanPeriodId )
         {
@@ -201,5 +242,7 @@ namespace SMS.Business
 
 
         }
+
+       
     }
 }

@@ -50,6 +50,23 @@
             public int? LoanPeriodId { get; set; }
 
         }
+        public class CreateInstallmentInvoiceDTO
+        {
+            public InvoiceType InvoiceTypeId { get; set; }
+            public string InitialInvoiceNumber { get; set; }
+            public CreateCustomerDTO Customer { get; set; }
+           
+            public CustomItemDTO[] Items { get; set; }
+
+            public DateTime Date { get; set; }
+            public bool PaymentStatus { get; set; }
+
+            public decimal SubTotal { get; set; }
+            public decimal Interest { get; set; }
+            public decimal TotalAmount { get; set; }
+            public int? LoanPeriodId { get; set; }
+
+        }
 
         public class CustomItemDTO
         {

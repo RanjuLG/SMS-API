@@ -14,7 +14,7 @@ namespace SMS.Models
 
         public decimal? SubTotal { get; set; }
         public decimal? InterestRate { get; set; }
-        public decimal? TotalAmount { get; set; }
+        public decimal TotalAmount { get; set; }
 
         // New Field
         [ForeignKey("LoanPeriod")]
