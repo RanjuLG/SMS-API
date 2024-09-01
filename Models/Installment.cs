@@ -10,14 +10,16 @@ namespace SMS.Models
 
         [ForeignKey("Transaction")]
         public int TransactionId { get; set; }
-
+        // Foreign key to Loan
+        [ForeignKey("Loan")]
+        public int LoanId { get; set; }
         public decimal AmountPaid { get; set; }
         public DateTime DueDate { get; set; }
         public DateTime? PaymentDate { get; set; }
 
         // Navigation Properties
         public virtual Transaction Transaction { get; set; }
-
+        public virtual Loan Loan { get; set; }
         DateTime? CreatedAt { get; set; } = DateTime.Now;
         public DateTime? UpdatedAt { get; set; } = DateTime.Now;
         public DateTime? DeletedAt { get; set; }

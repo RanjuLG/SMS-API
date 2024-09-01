@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
+using SMS.Business;
 using SMS.Generic;
 using SMS.Interfaces;
 using SMS.Models;
@@ -18,14 +19,21 @@ namespace SMS.Controllers
         private readonly IItemService _itemService;
         private readonly ITransactionService _transactionService;
         private readonly ITransactionItemService _transactionItemService;
+        private readonly BusinessLogic _businessLogic;
 
-        public InvoiceController(IInvoiceService invoiceService,ICustomerService customerService, IMapper mapper,IItemService itemService, ITransactionService transactionService,ITransactionItemService transactionItemService)
+        public InvoiceController(IInvoiceService invoiceService,
+            ICustomerService customerService, IMapper mapper,
+            IItemService itemService, 
+            ITransactionService transactionService,
+            ITransactionItemService transactionItemService,
+            BusinessLogic businessLogic)
         {
             _invoiceService = invoiceService;
             _mapper = mapper;
             _itemService = itemService;
             _transactionService = transactionService;
             _transactionItemService = transactionItemService;
+            _businessLogic = businessLogic;
             _customerService = customerService;
         }
 
@@ -68,210 +76,40 @@ namespace SMS.Controllers
                 return StatusCode(500, "Internal server error");
             }
         }
-
         [HttpPost]
         [Route("")]
         public ActionResult<CreateInvoiceDTO> CreateInvoice([FromBody] CreateInvoiceDTO request)
         {
             try
             {
+                // Process the invoice using the business logic method
+                var createdInvoiceId = _businessLogic.ProcessInvoice(request);
 
-                // Check if the customer exists
-                var existingCustomer = _customerService.GetCustomerByNIC(request.Customer.CustomerNIC);
-
-                Customer customer;
-                if (existingCustomer != null)
+                if (createdInvoiceId == null)
                 {
-                    // Use the existing customer
-                    customer = existingCustomer;
-                }
-                else
-                {
-                    // Create a new customer
-                    var customerDto = new CreateCustomerDTO
-                    {
-                        CustomerName = request.Customer.CustomerName,
-                        CustomerNIC = request.Customer.CustomerNIC,
-                        CustomerAddress = request.Customer.CustomerAddress,
-                        CustomerContactNo = request.Customer.CustomerContactNo,
-                    };
-
-                    customer = _mapper.Map<Customer>(customerDto);
-                    _customerService.CreateCustomer(customer);
+                    // If something went wrong and the invoice was not created
+                    return BadRequest("Failed to create invoice.");
                 }
 
-                var Customer = _customerService.GetCustomerByNIC(request.Customer.CustomerNIC);
+                // Assuming ProcessInvoice returns an integer ID of the created invoice
+                // Fetch the created invoice details to return
+              //  var createdInvoice = _invoiceService.GetInvoiceById(createdInvoiceId);
 
-                if(request.InvoiceTypeId == InvoiceType.InitialPawnInvoice)
-                {
-                    // Create a new transaction
-                    var transaction = new Transaction
-                    {
-                        CustomerId = customer.CustomerId,
-                        SubTotal = request.SubTotal,
-                        InterestRate = request.Interest,
-                        TotalAmount = request.TotalAmount,
-                        TransactionType = TransactionType.LoanIssuance,
-                        CreatedAt = DateTime.Now,
-                        UpdatedAt = DateTime.Now,
-                       LoanPeriodId = request.LoanPeriodId,
-                    };
-
-                    _transactionService.CreateTransaction(transaction);
-
-                    // Create a new item
-                    foreach (var item in request.Items)
-                    {
-                        if (item.itemId == null || item.itemId == 0)
-                        {
-
-                            var itemDto = new Item
-                            {
-                                ItemDescription = item.ItemDescription,
-                                ItemCaratage = item.ItemCaratage,
-                                ItemGoldWeight = item.ItemGoldWeight,
-                                ItemValue = item.ItemValue,
-                                Status = 0,
-                                CustomerId = Customer.CustomerId,
-                            };
-
-                            var newItem = _mapper.Map<Item>(itemDto);
-                            _itemService.CreateItem(newItem);
-
-                            var transactionItem = new TransactionItem
-                            {
-                                TransactionId = transaction.TransactionId,
-                                ItemId = newItem.ItemId
-                            };
-
-                            _transactionItemService.CreateTransactionItem(transactionItem);
-                        }
-                        else
-                        {
-                            var transactionItem = new TransactionItem
-                            {
-                                TransactionId = transaction.TransactionId,
-                                ItemId = item.itemId
-                            };
-
-                            _transactionItemService.CreateTransactionItem(transactionItem);
-
-
-                        }
-
-
-                    }
-
-                    // Create a new invoice
-                    var invoice = new Invoice
-                    {
-                        InvoiceNo = _invoiceService.GenerateInvoiceNumber(),
-                        InvoiceTypeId = InvoiceType.InitialPawnInvoice,
-                        TransactionId = transaction.TransactionId,
-                        DateGenerated = DateTime.Now,
-                        Status = 1,
-                        //CreatedBy = request.CreatedBy,
-                        //UpdatedBy = request.UpdatedBy,
-                        CreatedAt = DateTime.Now,
-                        UpdatedAt = DateTime.Now
-
-                    };
-
-                    _invoiceService.CreateInvoice(invoice);
-
-                    var createdInvoice = _invoiceService.GetLastInvoice();
-
-                    return Ok(createdInvoice.InvoiceId);
-                }
-                else if (request.InvoiceTypeId == InvoiceType.InstallmentPaymentInvoice) 
-                {
-                    // Create a new transaction
-                    var transaction = new Transaction
-                    {
-                        CustomerId = customer.CustomerId,
-                        SubTotal = request.SubTotal,
-                        InterestRate = request.Interest,
-                        TotalAmount = request.TotalAmount,
-                        TransactionType = TransactionType.InstallmentPayment,
-                        CreatedAt = DateTime.Now,
-                        UpdatedAt = DateTime.Now
-                    };
-
-                    _transactionService.CreateTransaction(transaction);
-
-
-                    // Create a new invoice
-                    var invoice = new Invoice
-                    {
-                        InvoiceNo = _invoiceService.GenerateInvoiceNumber(),
-                        InvoiceTypeId = InvoiceType.InstallmentPaymentInvoice,
-                        TransactionId = transaction.TransactionId,
-                        DateGenerated = DateTime.Now,
-                        Status = 1,
-                        //CreatedBy = request.CreatedBy,
-                        //UpdatedBy = request.UpdatedBy,
-                        CreatedAt = DateTime.Now,
-                        UpdatedAt = DateTime.Now
-
-                    };
-
-                    _invoiceService.CreateInvoice(invoice);
-
-                    var createdInvoice = _invoiceService.GetLastInvoice();
-
-                    return Ok(createdInvoice.InvoiceId);
-                }
-
-                else 
-                {
-                    // Create a new transaction
-                    var transaction = new Transaction
-                    {
-                        CustomerId = customer.CustomerId,
-                        SubTotal = request.SubTotal,
-                        InterestRate = request.Interest,
-                        TotalAmount = request.TotalAmount,
-                        TransactionType = TransactionType.LoanClosure,
-                        CreatedAt = DateTime.Now,
-                        UpdatedAt = DateTime.Now
-                    };
-
-                    _transactionService.CreateTransaction(transaction);
-
-
-                    // Create a new invoice
-                    var invoice = new Invoice
-                    {
-                        InvoiceNo = _invoiceService.GenerateInvoiceNumber(),
-                        InvoiceTypeId = InvoiceType.SettlementInvoice,
-                        TransactionId = transaction.TransactionId,
-                        DateGenerated = DateTime.Now,
-                        Status = 1,
-                        //CreatedBy = request.CreatedBy,
-                        //UpdatedBy = request.UpdatedBy,
-                        CreatedAt = DateTime.Now,
-                        UpdatedAt = DateTime.Now
-
-                    };
-
-                    _invoiceService.CreateInvoice(invoice);
-
-                    var createdInvoice = _invoiceService.GetLastInvoice();
-
-                    return Ok(createdInvoice.InvoiceId);
-
-                }
-
-              
+                // If the invoice creation was successful, return the created invoice details
+                return Ok();
             }
             catch (Exception ex)
             {
-                // Log the exception
+                // Log the exception (assuming a logger is available)
+             //   _logger.LogError(ex, "Error occurred while creating the invoice");
+
+                // Return an internal server error status code with a generic message
                 return StatusCode(500, "Internal server error");
             }
         }
 
-       
+
+
 
 
         [HttpPut]
