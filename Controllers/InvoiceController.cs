@@ -164,6 +164,7 @@ namespace SMS.Controllers
                 }
 
                 var invoices = _invoiceService.GetInvoicesByCustomerId(customer.CustomerId);
+
                 var invoiceDTOs = invoices.Select(invoice => new GetInvoiceDTO
                 {
                     InvoiceId = invoice.InvoiceId,
@@ -173,7 +174,9 @@ namespace SMS.Controllers
                     CustomerNIC = customerNIC,
                     TotalAmount = invoice.Transaction != null ? invoice.Transaction.TotalAmount : null,
                     DateGenerated = invoice.DateGenerated,
-                    Status = invoice.Status
+                    Status = invoice.Status,
+                    LoanPeriod = invoice.Transaction != null ? invoice.Transaction.LoanPeriod?.Period : null,
+
                 }).ToList();
 
                 return Ok(invoiceDTOs);
