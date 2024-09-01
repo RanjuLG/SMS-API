@@ -184,13 +184,13 @@ namespace SMS.Business
         {
             //var initialLoan = null;
             int loanId = 0;
-            var intialInvoice = _invoiceService.GetInvoiceByInvoiceNo(InitialInvoiceNumber);
+            var intialInvoice = _invoiceService.GetInvoiceByInvoiceNo(InitialInvoiceNumber).FirstOrDefault();
             var transaction = _transactionService.GetTransactionById(transactionId);
             var initialLoan = new Loan();
 
             if(intialInvoice != null)
             {
-                initialLoan = _loanService.GetAllLoans().Where(x => x.TransactionId == transactionId).ToList().FirstOrDefault();
+                initialLoan = _loanService.GetAllLoans().Where(x => x.TransactionId == intialInvoice.TransactionId).ToList().FirstOrDefault();
                
             }
 
