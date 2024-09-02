@@ -78,5 +78,12 @@ namespace SMS.Services
                              .Include(i => i.Transaction)
                              .ToList();
         }
+
+        public IList<Installment> GetInstallmentsForCustomer(int customerId)
+        {
+            return _dbContext.Get<Installment>(i => i.Transaction.CustomerId == customerId && i.DeletedAt == null)
+                             .Include(i => i.Transaction)
+                             .ToList();
+        }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Castle.Core.Resource;
 using Microsoft.AspNetCore.Mvc;
 using SMS.Business;
 using SMS.Generic;
@@ -231,8 +232,6 @@ namespace SMS.Controllers
                 return StatusCode(500, "Internal server error");
             }
         }
-
-
 
 
 

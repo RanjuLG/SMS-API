@@ -5,6 +5,7 @@ using SMS.Models.DTO.SMS.Models.DTO;
 using SMS.Models.DTO;
 using SMS.Models;
 using SMS.Migrations;
+using SMS.Generic;
 
 namespace SMS.Business
 {
@@ -285,6 +286,78 @@ namespace SMS.Business
             // Return the loan information object
             return loanInfo;
         }
+
+        public ReportDTO ProcessSingleReport(int customerId)
+        {
+            // Fetch customer details
+            var customer = _customerService.GetCustomerById(customerId);
+            if (customer == null)
+            {
+                return null;
+            }
+
+            // Fetch all loans for the customer
+            var loans = _loanService.GetLoansByCustomerId(customerId);
+
+            // Calculate totals
+            var totalLoanedAmount = loans.Sum(l => l.Transaction.TotalAmount);
+            var totalAmountPaid = loans.SelectMany(l => l.Installments)
+                                       .Where(i => i.PaymentDate.HasValue)
+                                       .Sum(i => i.AmountPaid);
+            var totalOutstandingAmount = totalLoanedAmount - totalAmountPaid;
+
+            // Prepare loans and installment data
+            var loanDtos = loans.Select(l => new LoanDTO
+            {
+                LoanId = l.LoanId,
+                TransactionId = l.TransactionId,
+                StartDate = l.StartDate,
+                EndDate = l.EndDate,
+                Transaction = new TransactionDTO
+                {
+                    TransactionId = l.Transaction.TransactionId,
+                    CreatedAt = l.Transaction.CreatedAt,
+                    SubTotal = l.Transaction.SubTotal,
+                    InterestRate = l.Transaction.InterestRate,
+                    TotalAmount = l.Transaction.TotalAmount,
+                    Customer = new GetCustomerDTO
+                    {
+                        CustomerId = customer.CustomerId,
+                        CustomerNIC = customer.CustomerNIC,
+                        CustomerName = customer.CustomerName
+                    },
+                    Items = l.Transaction.TransactionItems.Select(i => new GetItemDTO
+                    {
+                        // Map item properties here
+                    }).ToList()
+                },
+                Installments = l.Installments.Select(i => new InstallmentDTO
+                {
+                    InstallmentId = i.InstallmentId,
+                    LoanId = l.LoanId,
+                    AmountPaid = i.AmountPaid,
+                    DatePaid = i.PaymentDate ?? default(DateTime)
+                }).ToList()
+            }).ToList();
+
+            // Create the report DTO
+            var report = new ReportDTO
+            {
+                CustomerId = customer.CustomerId,
+                CustomerName = customer.CustomerName,
+                CustomerNIC = customer.CustomerNIC,
+                TotalLoanedAmount = totalLoanedAmount,
+                TotalAmountPaid = totalAmountPaid,
+                TotalOutstandingAmount = totalOutstandingAmount,
+                Loans = loanDtos // Include the list of loans
+            };
+
+            return report;
+        }
+
+
+
+
 
 
 
