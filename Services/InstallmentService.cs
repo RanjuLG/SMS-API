@@ -71,5 +71,12 @@ namespace SMS.Services
             }
             _dbContext.Save();
         }
+
+        public IList<Installment> GetInstallmentsByInitialInvoiceNumber(string invoiceNumber)
+        {
+            return _dbContext.Get<Installment>(i => i.Loan.Transaction.Invoice.InvoiceNo == invoiceNumber && i.DeletedAt == null)
+                             .Include(i => i.Transaction)
+                             .ToList();
+        }
     }
 }

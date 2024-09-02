@@ -243,6 +243,51 @@ namespace SMS.Business
 
         }
 
-       
+        public LoanInfo ProcessInstallments(string initialInvoiceNumber)
+        {
+            // Retrieve and sort installments
+            var installments = _installmentService.GetInstallmentsByInitialInvoiceNumber(initialInvoiceNumber)
+                                                  .OrderBy(x => x.InstallmentNumber)
+                                                  .ToList();
+
+            // Get initial invoice details
+            var initialInvoice = _invoiceService.GetInvoiceByInvoiceNo(initialInvoiceNumber).FirstOrDefault();
+            if (initialInvoice == null)
+            {
+                return null;
+            }
+
+            // Get transaction details
+            var initialTransaction = _transactionService.GetTransactionById(initialInvoice.TransactionId);
+            if (initialTransaction == null)
+            {
+                return null;
+            }
+
+            // Determine if the loan is settled
+            bool isLoanSettled = initialTransaction.LoanPeriod?.Period == installments.Count;
+
+            // Create a data object to return
+            var loanInfo = new LoanInfo
+            {
+                LoanAmount = initialTransaction.SubTotal,
+                InterestRate = initialTransaction.InterestRate,
+                InterestAmount = initialTransaction.SubTotal * initialTransaction.InterestRate / 100,
+                TotalAmount = initialTransaction.TotalAmount,
+                LoanPeriod = initialTransaction.LoanPeriod.Period,
+                NumberOfInstallments = initialTransaction.LoanPeriod.Period,
+                InstallmentValue = initialTransaction.TotalAmount / initialTransaction.LoanPeriod.Period,
+                NumberOfInstallmentsPaid = installments.Count,
+                NumberOfInstallmentsToBePaid = initialTransaction.LoanPeriod.Period - installments.Count,
+                IsLoanSettled = isLoanSettled
+            };
+
+            // Return the loan information object
+            return loanInfo;
+        }
+
+
+
+
     }
 }

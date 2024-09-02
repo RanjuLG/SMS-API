@@ -6,6 +6,7 @@ using SMS.Interfaces;
 using SMS.Models;
 using SMS.Models.DTO;
 using SMS.Models.DTO.SMS.Models.DTO;
+using SMS.Services;
 
 namespace SMS.Controllers
 {
@@ -19,6 +20,7 @@ namespace SMS.Controllers
         private readonly IItemService _itemService;
         private readonly ITransactionService _transactionService;
         private readonly ITransactionItemService _transactionItemService;
+        private readonly IInstallmentService _installmentService;
         private readonly BusinessLogic _businessLogic;
 
         public InvoiceController(IInvoiceService invoiceService,
@@ -26,6 +28,7 @@ namespace SMS.Controllers
             IItemService itemService, 
             ITransactionService transactionService,
             ITransactionItemService transactionItemService,
+            IInstallmentService installmentService,
             BusinessLogic businessLogic)
         {
             _invoiceService = invoiceService;
@@ -33,6 +36,7 @@ namespace SMS.Controllers
             _itemService = itemService;
             _transactionService = transactionService;
             _transactionItemService = transactionItemService;
+            _installmentService = installmentService;
             _businessLogic = businessLogic;
             _customerService = customerService;
         }
@@ -211,5 +215,26 @@ namespace SMS.Controllers
                 return StatusCode(500, "Internal server error");
             }
         }
+
+        [HttpGet("InitialInvoice/{invoiceNumber}")]
+        public ActionResult<IEnumerable<LoanInfo>> GetInfoByInvoiceNumber(string invoiceNumber)
+        {
+            try
+            {
+                var info = _businessLogic.ProcessInstallments(invoiceNumber);
+
+                return Ok(info);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+
+
+
+
     }
 }

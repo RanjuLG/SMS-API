@@ -13,6 +13,8 @@ namespace SMS.Models.DTO
         public DateTime DueDate { get; set; }
         public DateTime? PaymentDate { get; set; } // Nullable to represent unpaid installments
 
+        public int InstallmentNumber { get; set; }
+
 
     }
     public class CreateInstallmentDTO

@@ -29,7 +29,7 @@ namespace SMS.Controllers
             try
             {
                 var installments = _installmentService.GetAllInstallments();
-                var installmentDTOs = _mapper.Map<IEnumerable<Installment>>(installments);
+                var installmentDTOs = _mapper.Map<IEnumerable<GetInstallmentDTO>>(installments);
                 return Ok(installmentDTOs);
             }
             catch (Exception ex)
@@ -51,7 +51,7 @@ namespace SMS.Controllers
                     return NotFound();
                 }
 
-                var installmentDTO = _mapper.Map<Installment>(installment);
+                var installmentDTO = _mapper.Map<GetInstallmentDTO>(installment);
                 return Ok(installmentDTO);
             }
             catch (Exception ex)
@@ -60,6 +60,7 @@ namespace SMS.Controllers
                 return StatusCode(500, "Internal server error");
             }
         }
+
 
         [HttpGet("transaction/{transactionId}")]
         public ActionResult<IEnumerable<GetInstallmentDTO>> GetInstallmentsByTransactionId(int transactionId)
@@ -160,7 +161,26 @@ namespace SMS.Controllers
         }
 
 
+        [HttpGet("invoice/{invoiceNumber}")]
+        public ActionResult<IEnumerable<GetInstallmentDTO>> GetInstallmentsByInvoiceNumber(string invoiceNumber)
+        {
+            try
+            {
+                var installments = _installmentService.GetInstallmentsByInitialInvoiceNumber(invoiceNumber);
+                if (installments == null || installments.Count == 0)
+                {
+                    return NotFound("No installments found for the given invoice number.");
+                }
 
+                var installmentDTOs = _mapper.Map<IEnumerable<GetInstallmentDTO>>(installments);
+                return Ok(installmentDTOs);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception
+                return StatusCode(500, "Internal server error");
+            }
+        }
 
 
 

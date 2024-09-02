@@ -20,5 +20,7 @@ namespace SMS.Interfaces
         void DeleteInstallment(int installmentId);
 
         void DeleteInstallments(IEnumerable<int> installmentIds);
+
+        IList<Installment> GetInstallmentsByInitialInvoiceNumber(string invoiceNumber);
     }
 }

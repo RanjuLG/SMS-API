@@ -96,5 +96,21 @@
             public decimal SubTotal { get; set; }
             public decimal Interest { get; set; }
         }
+
+
+
+        public class LoanInfo
+        {
+            public decimal? LoanAmount { get; set; }
+            public decimal? InterestRate { get; set; }
+            public decimal? InterestAmount { get; set; }
+            public decimal TotalAmount { get; set; }
+            public int LoanPeriod { get; set; }
+            public int NumberOfInstallments { get; set; }
+            public decimal InstallmentValue { get; set; }
+            public int NumberOfInstallmentsPaid { get; set; }
+            public int NumberOfInstallmentsToBePaid { get; set; }
+            public bool IsLoanSettled { get; set; }
+        }
     }
 }
