@@ -266,7 +266,7 @@ namespace SMS.Business
             }
 
             // Determine if the loan is settled
-            bool isLoanSettled = initialTransaction.LoanPeriod?.Period == installments.Count;
+          //  bool isLoanSettled = initialTransaction.LoanPeriod?.Period == installments.Count;
 
             // Create a data object to return
             var loanInfo = new LoanInfo
@@ -280,7 +280,7 @@ namespace SMS.Business
                 InstallmentValue = initialTransaction.TotalAmount / initialTransaction.LoanPeriod.Period,
                 NumberOfInstallmentsPaid = installments.Count,
                 NumberOfInstallmentsToBePaid = initialTransaction.LoanPeriod.Period - installments.Count,
-                IsLoanSettled = isLoanSettled
+                IsLoanSettled = false
             };
 
             // Return the loan information object
@@ -289,70 +289,86 @@ namespace SMS.Business
 
         public ReportDTO ProcessSingleReport(int customerId)
         {
-            // Fetch customer details
-            var customer = _customerService.GetCustomerById(customerId);
-            if (customer == null)
+            try
+            {
+                // Fetch customer details
+                var customer = _customerService.GetCustomerById(customerId);
+                if (customer == null)
+                {
+                    return null;
+                }
+
+                // Fetch all loans for the customer
+                var loans = _loanService.GetLoansByCustomerId(customerId);
+
+                // Calculate totals
+                var totalLoanedAmount = loans.Sum(l => l.Transaction.TotalAmount);
+                var totalAmountPaid = loans.SelectMany(l => l.Installments)
+                                           .Where(i => i.PaymentDate.HasValue)
+                                           .Sum(i => i.AmountPaid);
+                var totalOutstandingAmount = totalLoanedAmount - totalAmountPaid;
+
+                // Prepare loans and installment data
+                var loanDtos = loans.Select(l => new LoanDTO
+                {
+                    LoanId = l.LoanId,
+                    TransactionId = l.TransactionId,
+                    StartDate = l.StartDate,
+                    EndDate = l.EndDate,
+                    Transaction = new TransactionDTO
+                    {
+                        TransactionId = l.Transaction.TransactionId,
+                        CreatedAt = l.Transaction.CreatedAt,
+                        SubTotal = l.Transaction.SubTotal,
+                        InterestRate = l.Transaction.InterestRate,
+                        TotalAmount = l.Transaction.TotalAmount,
+                        Customer = new GetCustomerDTO
+                        {
+                            CustomerId = customer.CustomerId,
+                            CustomerNIC = customer.CustomerNIC,
+                            CustomerName = customer.CustomerName
+                        },
+                        Items = l.Transaction.TransactionItems.Select(i => new GetItemDTO
+                        {
+                            ItemId = i.Item.ItemId,
+                            ItemDescription = i.Item.ItemDescription,
+                            ItemCaratage = i.Item.ItemCaratage,
+                            ItemGoldWeight = i.Item.ItemGoldWeight,
+                            ItemValue = i.Item.ItemValue,
+                            Status = i.Item.Status, // Assuming `Item` has a Status property
+                            CreatedAt = i.Item.CreatedAt,  // Optional: If you want the created date of the transaction item
+                            CustomerNIC = l.Transaction.Customer.CustomerNIC // Assuming CustomerNIC is in the Customer object
+                        }).ToList()
+
+            },
+                    Installments = l.Installments.Select(i => new InstallmentDTO
+                    {
+                        InstallmentId = i.InstallmentId,
+                        LoanId = l.LoanId,
+                        AmountPaid = i.AmountPaid,
+                        DatePaid = i.PaymentDate ?? default(DateTime)
+                    }).ToList()
+                }).ToList();
+
+                // Create the report DTO
+                var report = new ReportDTO
+                {
+                    CustomerId = customer.CustomerId,
+                    CustomerName = customer.CustomerName,
+                    CustomerNIC = customer.CustomerNIC,
+                    TotalLoanedAmount = totalLoanedAmount,
+                    TotalAmountPaid = totalAmountPaid,
+                    TotalOutstandingAmount = totalOutstandingAmount,
+                    Loans = loanDtos // Include the list of loans
+                };
+
+                return report;
+            }
+            catch (Exception ex)
             {
                 return null;
             }
-
-            // Fetch all loans for the customer
-            var loans = _loanService.GetLoansByCustomerId(customerId);
-
-            // Calculate totals
-            var totalLoanedAmount = loans.Sum(l => l.Transaction.TotalAmount);
-            var totalAmountPaid = loans.SelectMany(l => l.Installments)
-                                       .Where(i => i.PaymentDate.HasValue)
-                                       .Sum(i => i.AmountPaid);
-            var totalOutstandingAmount = totalLoanedAmount - totalAmountPaid;
-
-            // Prepare loans and installment data
-            var loanDtos = loans.Select(l => new LoanDTO
-            {
-                LoanId = l.LoanId,
-                TransactionId = l.TransactionId,
-                StartDate = l.StartDate,
-                EndDate = l.EndDate,
-                Transaction = new TransactionDTO
-                {
-                    TransactionId = l.Transaction.TransactionId,
-                    CreatedAt = l.Transaction.CreatedAt,
-                    SubTotal = l.Transaction.SubTotal,
-                    InterestRate = l.Transaction.InterestRate,
-                    TotalAmount = l.Transaction.TotalAmount,
-                    Customer = new GetCustomerDTO
-                    {
-                        CustomerId = customer.CustomerId,
-                        CustomerNIC = customer.CustomerNIC,
-                        CustomerName = customer.CustomerName
-                    },
-                    Items = l.Transaction.TransactionItems.Select(i => new GetItemDTO
-                    {
-                        // Map item properties here
-                    }).ToList()
-                },
-                Installments = l.Installments.Select(i => new InstallmentDTO
-                {
-                    InstallmentId = i.InstallmentId,
-                    LoanId = l.LoanId,
-                    AmountPaid = i.AmountPaid,
-                    DatePaid = i.PaymentDate ?? default(DateTime)
-                }).ToList()
-            }).ToList();
-
-            // Create the report DTO
-            var report = new ReportDTO
-            {
-                CustomerId = customer.CustomerId,
-                CustomerName = customer.CustomerName,
-                CustomerNIC = customer.CustomerNIC,
-                TotalLoanedAmount = totalLoanedAmount,
-                TotalAmountPaid = totalAmountPaid,
-                TotalOutstandingAmount = totalOutstandingAmount,
-                Loans = loanDtos // Include the list of loans
-            };
-
-            return report;
+           
         }
 
 
