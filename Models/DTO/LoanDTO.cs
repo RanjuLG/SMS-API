@@ -21,6 +21,10 @@
         public int TransactionId { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
+        public decimal TotalAmount { get; set; }
+        public decimal AmountPaid { get; set; }
+        public decimal OutstandingAmount { get; set; }
+        public Boolean IsSettled { get; set; }
         public TransactionDTO Transaction { get; set; }
         public ICollection<InstallmentDTO> Installments { get; set; }
     }

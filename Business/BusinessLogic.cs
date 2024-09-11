@@ -55,6 +55,7 @@ namespace SMS.Business
                 Invoice invoice;
                 Loan loan;
                 Installment installment;
+           
 
                 switch (request.InvoiceTypeId)
                 {
@@ -69,6 +70,7 @@ namespace SMS.Business
                     case InvoiceType.InstallmentPaymentInvoice:
                         transaction = CreateTransaction(customer.CustomerId, request.SubTotal, request.Interest, request.TotalAmount, TransactionType.InstallmentPayment);
                         installment = CreateInstallment(initialInvoiceNumber, transaction.TransactionId, installmentNumber);
+                        loan = UpdateInitialLoan(initialInvoiceNumber, transaction.TotalAmount);
                         invoice = CreateInvoice(transaction.TransactionId, InvoiceType.InstallmentPaymentInvoice);
                         break;
 
@@ -321,6 +323,10 @@ namespace SMS.Business
                     TransactionId = l.TransactionId,
                     StartDate = l.StartDate,
                     EndDate = l.EndDate,
+                    AmountPaid = l.AmountPaid,
+                    IsSettled = l. IsSettled,
+                    OutstandingAmount = l.OutstandingAmount,
+                    
                     Transaction = new TransactionDTO
                     {
                         TransactionId = l.Transaction.TransactionId,
@@ -362,9 +368,6 @@ namespace SMS.Business
                     CustomerId = customer.CustomerId,
                     CustomerName = customer.CustomerName,
                     CustomerNIC = customer.CustomerNIC,
-                    TotalLoanedAmount = totalLoanedAmount,
-                    TotalAmountPaid = totalAmountPaid,
-                    TotalOutstandingAmount = totalOutstandingAmount,
                     Loans = loanDtos // Include the list of loans
                 };
 
@@ -407,7 +410,33 @@ namespace SMS.Business
         }
 
 
+        public Loan UpdateInitialLoan(string initialInvoiceNumber,decimal installmentPaid)
+        {
+            // Get the Transaction ID associated with the invoice number
+            var transactionId = _invoiceService.GetInvoiceByInvoiceNo(initialInvoiceNumber)
+                                                .FirstOrDefault()?.Transaction.TransactionId;
 
+            if (transactionId != null)
+            {
+                // Find the loan associated with the transaction ID
+                var loan = _loanService.GetAllLoans()
+                                       .Where(i => i.TransactionId == transactionId)
+                                       .FirstOrDefault();
+                var installments = _installmentService.GetInstallmentsByInitialInvoiceNumber(initialInvoiceNumber);
+
+                if (loan != null)
+                {
+                   loan.AmountPaid = installments.Sum(i => i.AmountPaid);   
+                    loan.OutstandingAmount = loan.Transaction.TotalAmount - loan.AmountPaid;
+
+                    // Call update method in _loanService to save changes
+                    _loanService.UpdateLoan(loan);
+
+                    return loan;
+                }
+            }
+            return null;
+        }
 
 
     }

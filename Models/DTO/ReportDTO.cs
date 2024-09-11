@@ -6,10 +6,6 @@
         public string CustomerName { get; set; }
         public string CustomerNIC { get; set; }
 
-        public decimal TotalLoanedAmount { get; set; }
-        public decimal TotalAmountPaid { get; set; }
-        public decimal TotalOutstandingAmount { get; set; }
-
         public List<LoanDTO> Loans { get; set; } // Includes loans and their installments
     }
 
@@ -21,6 +17,8 @@
         public decimal TotalAmount { get; set; }
         public decimal AmountPaid { get; set; }
         public decimal OutstandingAmount { get; set; }
+
+        public Boolean IsSettled { get; set; }
 
         public List<InstallmentDTO> Installments { get; set; } // List of installments associated with this loan
     }
