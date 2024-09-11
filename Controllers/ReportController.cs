@@ -37,21 +37,34 @@ namespace SMS.Controllers
             _customerService = customerService;
         }
         [HttpGet]
-        [Route("customer/{customerId}")]
-        public ActionResult<ReportDTO> GetReports(int customerId)
+        [Route("customer/{customerNIC}")]
+        public ActionResult<ReportDTO> GetReports(string customerNIC)
         {
             try
             {
-                var report = _businessLogic.ProcessSingleReport(customerId);
+                var customer = _customerService.GetCustomerByNIC(customerNIC);
 
-                if (report != null)
+                if(customer != null)
                 {
-                    return Ok(report);
+                    var report = _businessLogic.ProcessSingleReport(customer.CustomerId);
+
+                    if (report != null)
+                    {
+                        return Ok(report);
+                    }
+                    else
+                    {
+                        return NotFound();
+                    }
+
                 }
                 else
                 {
-                    return NotFound();
+                    return BadRequest();
                 }
+               
+
+               
 
             }
             catch (Exception ex)

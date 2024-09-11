@@ -74,7 +74,13 @@ namespace SMS.Business
 
                     case InvoiceType.SettlementInvoice:
                         transaction = CreateTransaction(customer.CustomerId, request.SubTotal, request.Interest, request.TotalAmount, TransactionType.LoanClosure);
-                        invoice = CreateInvoice(transaction.TransactionId, InvoiceType.SettlementInvoice);
+                        var isLoanSettled = SettleLoan(initialInvoiceNumber);
+
+                        if (isLoanSettled)
+                        {
+                            invoice = CreateInvoice(transaction.TransactionId, InvoiceType.SettlementInvoice);
+                        }
+
                         break;
 
                     default:
@@ -373,6 +379,32 @@ namespace SMS.Business
 
 
 
+        public bool SettleLoan(string initialInvoiceNumber)
+        {
+            // Get the Transaction ID associated with the invoice number
+            var transactionId = _invoiceService.GetInvoiceByInvoiceNo(initialInvoiceNumber)
+                                                .FirstOrDefault()?.Transaction.TransactionId;
+
+            if (transactionId != null)
+            {
+                // Find the loan associated with the transaction ID
+                var loan = _loanService.GetAllLoans()
+                                       .Where(i => i.TransactionId == transactionId)
+                                       .FirstOrDefault();
+
+                if (loan != null)
+                {
+                    // Set the loan as settled
+                    loan.IsSettled = true;
+
+                    // Call update method in _loanService to save changes
+                    _loanService.UpdateLoan(loan);
+
+                    return true;
+                }
+            }
+            return false;
+        }
 
 
 
