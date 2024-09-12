@@ -73,5 +73,44 @@ namespace SMS.Controllers
                 return StatusCode(500, "Internal server error");
             }
         }
+        /*
+        [HttpGet]
+        [Route("")]
+        public ActionResult<IEnumerable<ReportDTO>> GetReports([FromQuery] DateTimeRange dataParams)
+        {
+            try
+            {
+               
+
+                if (dataParams != null)
+                {
+                    var reports = _businessLogic.ProcessTimelyReports(dataParams);
+
+                    if (reports != null)
+                    {
+                        return Ok(reports);
+                    }
+                    else
+                    {
+                        return NotFound();
+                    }
+
+                }
+                else
+                {
+                    return BadRequest();
+                }
+
+
+
+
+            }
+            catch (Exception ex)
+            {
+                // Log the exception
+                return StatusCode(500, "Internal server error");
+            }
+        }
+        */
     }
 }

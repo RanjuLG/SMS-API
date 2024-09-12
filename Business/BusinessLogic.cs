@@ -379,7 +379,94 @@ namespace SMS.Business
             }
            
         }
+        /*
+        public IList<ReportDTO> ProcessTimelyReports(IDateTimeRange dateTimeRange)
+        {
+            try
+            {
+               DateTime from = dateTimeRange.From;
+               DateTime to = dateTimeRange.To;
 
+                if (from == DateTime.MinValue || to == DateTime.MinValue
+)
+                {
+                    return null;
+                }
+
+                // Fetch all loans for the customer
+                
+
+                // Calculate totals
+                var totalLoanedAmount = loans.Sum(l => l.Transaction.TotalAmount);
+                var totalAmountPaid = loans.SelectMany(l => l.Installments)
+                                           .Where(i => i.PaymentDate.HasValue)
+                                           .Sum(i => i.AmountPaid);
+                var totalOutstandingAmount = totalLoanedAmount - totalAmountPaid;
+
+                // Prepare loans and installment data
+                var loanDtos = loans.Select(l => new LoanDTO
+                {
+                    LoanId = l.LoanId,
+                    TransactionId = l.TransactionId,
+                    StartDate = l.StartDate,
+                    EndDate = l.EndDate,
+                    AmountPaid = l.AmountPaid,
+                    IsSettled = l.IsSettled,
+                    OutstandingAmount = l.OutstandingAmount,
+
+                    Transaction = new TransactionDTO
+                    {
+                        TransactionId = l.Transaction.TransactionId,
+                        CreatedAt = l.Transaction.CreatedAt,
+                        SubTotal = l.Transaction.SubTotal,
+                        InterestRate = l.Transaction.InterestRate,
+                        TotalAmount = l.Transaction.TotalAmount,
+                        Customer = new GetCustomerDTO
+                        {
+                            CustomerId = customer.CustomerId,
+                            CustomerNIC = customer.CustomerNIC,
+                            CustomerName = customer.CustomerName
+                        },
+                        Items = l.Transaction.TransactionItems.Select(i => new GetItemDTO
+                        {
+                            ItemId = i.Item.ItemId,
+                            ItemDescription = i.Item.ItemDescription,
+                            ItemCaratage = i.Item.ItemCaratage,
+                            ItemGoldWeight = i.Item.ItemGoldWeight,
+                            ItemValue = i.Item.ItemValue,
+                            Status = i.Item.Status, // Assuming `Item` has a Status property
+                            CreatedAt = i.Item.CreatedAt,  // Optional: If you want the created date of the transaction item
+                            CustomerNIC = l.Transaction.Customer.CustomerNIC // Assuming CustomerNIC is in the Customer object
+                        }).ToList()
+
+                    },
+                    Installments = l.Installments.Select(i => new InstallmentDTO
+                    {
+                        InstallmentId = i.InstallmentId,
+                        LoanId = l.LoanId,
+                        AmountPaid = i.AmountPaid,
+                        DatePaid = i.PaymentDate ?? default(DateTime)
+                    }).ToList()
+                }).ToList();
+
+                // Create the report DTO
+                var report = new ReportDTO
+                {
+                    CustomerId = customer.CustomerId,
+                    CustomerName = customer.CustomerName,
+                    CustomerNIC = customer.CustomerNIC,
+                    Loans = loanDtos // Include the list of loans
+                };
+
+                return report;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+
+        }
+        */
 
 
         public bool SettleLoan(string initialInvoiceNumber)

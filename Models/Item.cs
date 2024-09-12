@@ -15,7 +15,7 @@ namespace SMS.Models
         public decimal? ItemCaratage { get; set; }
         public decimal? ItemGoldWeight { get; set; }
         public decimal? ItemValue { get; set; }
-        public int? Status { get; set; } = 0;
+        public int? Status { get; set; } = 1;
         public long? CreatedBy { get; set; }
         public long? UpdatedBy { get; set; }
         public long? DeletedBy { get; set; }
