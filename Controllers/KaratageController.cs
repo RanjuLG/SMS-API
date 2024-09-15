@@ -210,16 +210,11 @@ namespace SMS.Controllers
                 if (karat == null)
                 {
                     // Try to create the Karat
-                    var newKarat = new KaratDTO
+                    var newKarat = new Karat
                     {
                         KaratValue = pricingBatchDTO.KaratValue
                     };
-                    var createKaratResult = CreateKarat(newKarat);
-                    if (createKaratResult is ObjectResult result && result.StatusCode == 400)
-                    {
-                        failedPricings.Add(new { pricingBatchDTO, Error = $"Failed to create Karat with value {pricingBatchDTO.KaratValue}." });
-                        continue;
-                    }
+                    _karatageService.CreateKarat(newKarat);
                     karat = _karatageService.GetAllKarats().FirstOrDefault(k => k.KaratValue == pricingBatchDTO.KaratValue);
                     if (karat == null)
                     {
@@ -233,36 +228,39 @@ namespace SMS.Controllers
                 if (loanPeriod == null)
                 {
                     // Try to create the LoanPeriod
-                    var newLoanPeriod = new LoanPeriodDTO
+                    var newLoanPeriod = new LoanPeriod
                     {
                         Period = pricingBatchDTO.Period
                     };
-                    var createLoanPeriodResult = CreateLoanPeriod(newLoanPeriod);
-                    if (createLoanPeriodResult is ObjectResult result && result.StatusCode == 400)
-                    {
-                        failedPricings.Add(new { pricingBatchDTO, Error = $"Failed to create LoanPeriod with period {pricingBatchDTO.Period}." });
-                        continue;
-                    }
+                    _karatageService.CreateLoanPeriod(loanPeriod);
                     loanPeriod = _karatageService.GetAllLoanPeriods().FirstOrDefault(lp => lp.Period == pricingBatchDTO.Period);
                     if (loanPeriod == null)
                     {
-                        failedPricings.Add(new { pricingBatchDTO, Error = $"Could not fetch LoanPeriod after creation with period {pricingBatchDTO.Period}." });
+                        // failedPricings.Add(new { pricingBatchDTO, Error = $"Could not fetch LoanPeriod after creation with period {pricingBatchDTO.Period}." });
                         continue;
                     }
                 }
 
                 // Check if the Pricing already exists
-                var isPricingExists = _karatageService.GetAllPricings()
-                    .Where(x => x.LoanPeriodId == loanPeriod.LoanPeriodId && x.KaratId == karat.KaratId)
-                    .ToList();
+                var existingPricing = _karatageService.GetAllPricings()
+                    .FirstOrDefault(x => x.LoanPeriodId == loanPeriod.LoanPeriodId && x.KaratId == karat.KaratId);
 
-                if (isPricingExists.Count > 0)
+                if (existingPricing != null)
                 {
-                    failedPricings.Add(new { pricingBatchDTO, Error = $"Pricing already exists for Karat {pricingBatchDTO.KaratValue} and LoanPeriod {pricingBatchDTO.Period}." });
+                    // If pricing exists, update the price if it's different
+                    if (existingPricing.Price != pricingBatchDTO.Price)
+                    {
+                        existingPricing.Price = pricingBatchDTO.Price;
+                        _karatageService.UpdatePricing(existingPricing);
+                    }
+                    else
+                    {
+                       // failedPricings.Add(new { pricingBatchDTO, Error = $"Pricing already exists with the same price for Karat {pricingBatchDTO.KaratValue} and LoanPeriod {pricingBatchDTO.Period}." });
+                    }
                     continue;
                 }
 
-                // Create the Pricing entity
+                // If pricing doesn't exist, create a new one
                 var pricing = new Pricing
                 {
                     Price = pricingBatchDTO.Price,
@@ -275,10 +273,11 @@ namespace SMS.Controllers
 
             if (failedPricings.Any())
             {
-                return BadRequest(new { message = "Some pricings could not be created.", failedPricings });
+                return BadRequest(new { message = "Some pricings could not be created or updated.", failedPricings });
             }
 
-            return Ok("All pricings were created successfully.");
+            return Ok(new { message = "All pricings were created/updated successfully." });
+
         }
 
 
