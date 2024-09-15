@@ -26,6 +26,8 @@ namespace SMS
             CreateMap<UpdateItemDTO, Item>();
             CreateMap<Item, GetItemDTO>()
              .ForMember(dest => dest.CustomerNIC, opt => opt.MapFrom(src => src.Customer.CustomerNIC));
+            CreateMap<GetItemDTO, Item>();
+
 
 
 
@@ -45,9 +47,7 @@ namespace SMS
             CreateMap<UpdateInvoiceDTO, Invoice>();
 
             //Mapping for Transactions
-            CreateMap<Transaction, TransactionDTO>()
-                      .ForMember(dest => dest.Customer, opt => opt.MapFrom(src => src.Customer))
-                      .ForMember(dest => dest.Item, opt => opt.MapFrom(src => src.Item));
+          
 
             CreateMap<TransactionDTO, Transaction>();
 
@@ -59,6 +59,37 @@ namespace SMS
 
             CreateMap<Customer, CommonCustomerDTO>();
             CreateMap<Item, CommonItemDTO>();
+
+            CreateMap<Transaction, TransactionDTO>()
+            .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.TransactionItems.Select(ti => ti.Item)))
+            .ForMember(dest => dest.Customer, opt => opt.MapFrom(src => src.Customer));
+            CreateMap<Transaction, TransactionDTO>()
+                        .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.TransactionItems.Select(ti => ti.Item)))
+                        .ForMember(dest => dest.Customer, opt => opt.MapFrom(src => src.Customer));
+
+            CreateMap<CreateTransactionDTO, Transaction>()
+                .ForMember(dest => dest.TransactionItems, opt => opt.MapFrom((src, dest, destMember, context) =>
+                    src.Items.Select(i => new TransactionItem { Item = context.Mapper.Map<Item>(i) })));
+
+            CreateMap<UpdateTransactionDTO, Transaction>();
+
+            CreateMap<Item, GetItemDTO>();
+            CreateMap<Customer, GetCustomerDTO>();
+
+            CreateMap<CreateItemDTO, Item>()
+                .ForMember(dest => dest.ItemId, opt => opt.Ignore()) // Assuming ItemId is auto-generated
+                .ForMember(dest => dest.Status, opt => opt.Ignore()) // Assuming Status is set elsewhere
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.CustomerId, opt => opt.Ignore());
+
+
+            // Mapping for Installment
+            CreateMap<Installment, GetInstallmentDTO>();
+            CreateMap<GetInstallmentDTO, Installment>();
+
+            CreateMap<Installment, CreateInstallmentDTO>();
+            CreateMap<CreateInstallmentDTO, Installment>();
         }
     }
 }

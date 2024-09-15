@@ -6,7 +6,7 @@ namespace SMS.Interfaces
 {
     public interface ITransactionService
     {
-        IList<Transaction> GetAllTransactions();
+        IList<Transaction> GetAllTransactions(IDateTimeRange dateTimeRange);
         Transaction GetTransactionById(int transactionId);
         List<Transaction> GetTransactionsByIds(List<int> transactionIds);
         void CreateTransaction(Transaction transaction);

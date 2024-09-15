@@ -24,29 +24,43 @@ namespace SMS.Services
         {
             var invoices = _dbContext.Get<Invoice>(i => i.DeletedAt == null)
                 .Include(i => i.Transaction)
+                .Include(i => i.InvoiceTypeId)
                 .ToList();
 
             return invoices;
         }
 
-        public IList<GetInvoiceDTO> GetInvoices()
+        public IList<GetInvoiceDTO> GetInvoices(IDateTimeRange dateTimeRange)
         {
+            var startTime = dateTimeRange.From;
+            var endTime = dateTimeRange.To;
+
             var invoices = new List<GetInvoiceDTO>();
-            var invoices_ = _dbContext.Get<Invoice>(i => i.DeletedAt == null).ToList();
+            var invoices_ = _dbContext.Get<Invoice>(i => i.DeletedAt == null && i.CreatedAt <= endTime && i.CreatedAt >= startTime)
+                .Include(i => i.Transaction) // Ensure Transaction is included
+                .ThenInclude(t => t.LoanPeriod) // Ensure LoanPeriod is included
+                .ToList();
 
             foreach (var invoice_ in invoices_)
             {
                 var transaction = _transactionService.GetTransactionById(invoice_.TransactionId);
 
+                if (transaction == null)
+                {
+                    continue;
+                }
+
                 var invoice = new GetInvoiceDTO
                 {
                     InvoiceId = invoice_.InvoiceId,
+                    InvoiceTypeId = invoice_.InvoiceTypeId,
                     InvoiceNo = invoice_.InvoiceNo,
                     TransactionId = transaction.TransactionId,
                     CustomerNIC = transaction.Customer?.CustomerNIC,
                     TotalAmount = transaction.TotalAmount,
                     DateGenerated = invoice_.DateGenerated,
                     Status = invoice_.Status,
+                    LoanPeriod = transaction.LoanPeriod?.Period // Map LoanPeriod
                 };
 
                 invoices.Add(invoice);
@@ -64,20 +78,22 @@ namespace SMS.Services
             }
 
             var transaction = _transactionService.GetTransactionById(invoice_.TransactionId);
-
             var invoice = new GetInvoiceDTO
             {
                 InvoiceId = invoice_.InvoiceId,
+                InvoiceTypeId = invoice_.InvoiceTypeId,
                 InvoiceNo = invoice_.InvoiceNo,
                 TransactionId = transaction.TransactionId,
                 CustomerNIC = transaction.Customer?.CustomerNIC,
                 TotalAmount = transaction.TotalAmount,
                 DateGenerated = invoice_.DateGenerated,
                 Status = invoice_.Status,
+                LoanPeriod = transaction.LoanPeriod?.Period // Map LoanPeriod
             };
 
             return invoice;
         }
+
 
         public void CreateInvoice(Invoice invoice)
         {

@@ -5,6 +5,7 @@ using SMS.Interfaces;
 using SMS.Models.DTO;
 using SMS.Models;
 using SMS.Services;
+using SMS.Generic;
 
 namespace SMS.Controllers
 {
@@ -25,12 +26,23 @@ namespace SMS.Controllers
 
         [HttpGet]
         [Route("")]
-        public ActionResult<IEnumerable<GetItemDTO>> GetItems()
+        public ActionResult<IEnumerable<GetItemDTO>> GetItems([FromQuery] DateTimeRange dataParams)
         {
             try
             {
-                var items = _ItemService.GetAllItems();
-                var itemsDTO = _mapper.Map<IEnumerable<GetItemDTO>>(items);
+                var items = _ItemService.GetAllItems(dataParams);
+                var itemsDTO = items.Select(item => new GetItemDTO
+                {
+                    ItemId = item.ItemId,
+                    ItemDescription = item.ItemDescription,
+                    ItemCaratage = item.ItemCaratage,
+                    ItemGoldWeight = item.ItemGoldWeight,
+                    ItemValue = item.ItemValue,
+                    Status = item.Status,
+                    CreatedAt = item.CreatedAt,
+                    CustomerNIC = item.Customer != null ? item.Customer.CustomerNIC : null // Assuming Customer has an NIC property
+                }).ToList();
+
                 return Ok(itemsDTO);
             }
             catch (Exception ex)
@@ -42,19 +54,32 @@ namespace SMS.Controllers
 
 
 
+
         [HttpGet]
         [Route("{ItemId}/Item")]
         public ActionResult<GetItemDTO> GetItemById(int ItemId)
         {
             try
             {
-                var Item = _ItemService.GetItemById(ItemId);
-                if (Item == null)
+                var item = _ItemService.GetItemById(ItemId);
+                if (item == null)
                 {
                     return NotFound();
                 }
 
-                var ItemDTO = _mapper.Map<GetItemDTO>(Item);
+                var ItemDTO = new GetItemDTO 
+                {
+                    ItemId = item.ItemId,
+                    ItemDescription = item.ItemDescription,
+                    ItemCaratage = item.ItemCaratage,
+                    ItemGoldWeight = item.ItemGoldWeight,
+                    ItemValue = item.ItemValue,
+                    Status = item.Status,
+                    CreatedAt = item.CreatedAt,
+                    CustomerNIC = item.Customer != null ? item.Customer.CustomerNIC : null
+
+
+                };
                 return Ok(ItemDTO);
             }
             catch (Exception ex)
@@ -72,7 +97,7 @@ namespace SMS.Controllers
             {
                 var isCustomerExists = _customerService.GetCustomerByNIC(request.CustomerNIC);
 
-                if (isCustomerExists != null)
+                if (isCustomerExists == null)
                 {
                     return NotFound();
                 }
@@ -189,7 +214,17 @@ namespace SMS.Controllers
                 }
 
                 var items = _ItemService.GetItemsByCustomerId(customer.CustomerId);
-                var itemsDTO = _mapper.Map<IEnumerable<GetItemDTO>>(items);
+                var itemsDTO = items.Select(item => new GetItemDTO
+                {
+                    ItemId = item.ItemId,
+                    ItemDescription = item.ItemDescription,
+                    ItemCaratage = item.ItemCaratage,
+                    ItemGoldWeight = item.ItemGoldWeight,
+                    ItemValue = item.ItemValue,
+                    Status = item.Status,
+                    CreatedAt = item.CreatedAt,
+                    CustomerNIC = item.Customer != null ? item.Customer.CustomerNIC : null // Assuming Customer has an NIC property
+                }).ToList();
 
                 return Ok(itemsDTO);
             }
