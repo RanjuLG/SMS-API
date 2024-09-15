@@ -198,6 +198,90 @@ namespace SMS.Controllers
             _karatageService.CreatePricing(pricing);
             return Ok();
         }
+        [HttpPost("pricings/batch")]
+        public ActionResult CreatePricingBatch([FromBody] List<PricingBatchDTO> pricingBatchDTOs)
+        {
+            var failedPricings = new List<object>();
+
+            foreach (var pricingBatchDTO in pricingBatchDTOs)
+            {
+                // Check if the Karat exists, if not, create it
+                var karat = _karatageService.GetAllKarats().FirstOrDefault(k => k.KaratValue == pricingBatchDTO.KaratValue);
+                if (karat == null)
+                {
+                    // Try to create the Karat
+                    var newKarat = new KaratDTO
+                    {
+                        KaratValue = pricingBatchDTO.KaratValue
+                    };
+                    var createKaratResult = CreateKarat(newKarat);
+                    if (createKaratResult is ObjectResult result && result.StatusCode == 400)
+                    {
+                        failedPricings.Add(new { pricingBatchDTO, Error = $"Failed to create Karat with value {pricingBatchDTO.KaratValue}." });
+                        continue;
+                    }
+                    karat = _karatageService.GetAllKarats().FirstOrDefault(k => k.KaratValue == pricingBatchDTO.KaratValue);
+                    if (karat == null)
+                    {
+                        failedPricings.Add(new { pricingBatchDTO, Error = $"Could not fetch Karat after creation with value {pricingBatchDTO.KaratValue}." });
+                        continue;
+                    }
+                }
+
+                // Check if the LoanPeriod exists, if not, create it
+                var loanPeriod = _karatageService.GetAllLoanPeriods().FirstOrDefault(lp => lp.Period == pricingBatchDTO.Period);
+                if (loanPeriod == null)
+                {
+                    // Try to create the LoanPeriod
+                    var newLoanPeriod = new LoanPeriodDTO
+                    {
+                        Period = pricingBatchDTO.Period
+                    };
+                    var createLoanPeriodResult = CreateLoanPeriod(newLoanPeriod);
+                    if (createLoanPeriodResult is ObjectResult result && result.StatusCode == 400)
+                    {
+                        failedPricings.Add(new { pricingBatchDTO, Error = $"Failed to create LoanPeriod with period {pricingBatchDTO.Period}." });
+                        continue;
+                    }
+                    loanPeriod = _karatageService.GetAllLoanPeriods().FirstOrDefault(lp => lp.Period == pricingBatchDTO.Period);
+                    if (loanPeriod == null)
+                    {
+                        failedPricings.Add(new { pricingBatchDTO, Error = $"Could not fetch LoanPeriod after creation with period {pricingBatchDTO.Period}." });
+                        continue;
+                    }
+                }
+
+                // Check if the Pricing already exists
+                var isPricingExists = _karatageService.GetAllPricings()
+                    .Where(x => x.LoanPeriodId == loanPeriod.LoanPeriodId && x.KaratId == karat.KaratId)
+                    .ToList();
+
+                if (isPricingExists.Count > 0)
+                {
+                    failedPricings.Add(new { pricingBatchDTO, Error = $"Pricing already exists for Karat {pricingBatchDTO.KaratValue} and LoanPeriod {pricingBatchDTO.Period}." });
+                    continue;
+                }
+
+                // Create the Pricing entity
+                var pricing = new Pricing
+                {
+                    Price = pricingBatchDTO.Price,
+                    KaratId = karat.KaratId,
+                    LoanPeriodId = loanPeriod.LoanPeriodId,
+                };
+
+                _karatageService.CreatePricing(pricing);
+            }
+
+            if (failedPricings.Any())
+            {
+                return BadRequest(new { message = "Some pricings could not be created.", failedPricings });
+            }
+
+            return Ok("All pricings were created successfully.");
+        }
+
+
 
         [HttpPut("pricings/{pricingId}")]
         public ActionResult UpdatePricing(int pricingId, [FromBody] PricingPutDTO pricingDto)
