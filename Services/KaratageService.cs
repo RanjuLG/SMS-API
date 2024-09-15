@@ -106,6 +106,7 @@ namespace SMS.Services
             return _dbContext.Get<Pricing>()
                 .Include(p => p.Karat)
                 .Include(p => p.LoanPeriod)
+                .OrderByDescending(a => a.Karat) // Change to OrderByDescending
                 .ToList();
         }
 

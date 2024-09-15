@@ -1,10 +1,13 @@
 ﻿using AutoMapper;
+using Castle.Core.Resource;
 using Microsoft.AspNetCore.Mvc;
+using SMS.Business;
 using SMS.Generic;
 using SMS.Interfaces;
 using SMS.Models;
 using SMS.Models.DTO;
 using SMS.Models.DTO.SMS.Models.DTO;
+using SMS.Services;
 
 namespace SMS.Controllers
 {
@@ -18,14 +21,24 @@ namespace SMS.Controllers
         private readonly IItemService _itemService;
         private readonly ITransactionService _transactionService;
         private readonly ITransactionItemService _transactionItemService;
+        private readonly IInstallmentService _installmentService;
+        private readonly BusinessLogic _businessLogic;
 
-        public InvoiceController(IInvoiceService invoiceService,ICustomerService customerService, IMapper mapper,IItemService itemService, ITransactionService transactionService,ITransactionItemService transactionItemService)
+        public InvoiceController(IInvoiceService invoiceService,
+            ICustomerService customerService, IMapper mapper,
+            IItemService itemService, 
+            ITransactionService transactionService,
+            ITransactionItemService transactionItemService,
+            IInstallmentService installmentService,
+            BusinessLogic businessLogic)
         {
             _invoiceService = invoiceService;
             _mapper = mapper;
             _itemService = itemService;
             _transactionService = transactionService;
             _transactionItemService = transactionItemService;
+            _installmentService = installmentService;
+            _businessLogic = businessLogic;
             _customerService = customerService;
         }
 
@@ -68,127 +81,37 @@ namespace SMS.Controllers
                 return StatusCode(500, "Internal server error");
             }
         }
-
         [HttpPost]
-        [Route("")]
-        public ActionResult<CreateInvoiceDTO> CreateInvoice([FromBody] CreateInvoiceDTO request)
+        [Route("{initialInvoiceNumber}/{installmentNumber}")]
+        public ActionResult<CreateInvoiceDTO> CreateInvoice([FromBody] CreateInvoiceDTO request, string initialInvoiceNumber, int installmentNumber)
         {
             try
             {
-                // Check if the customer exists
-                var existingCustomer = _customerService.GetCustomerByNIC(request.Customer.CustomerNIC);
+                // Process the invoice using the business logic method
+                var createdInvoiceId = _businessLogic.ProcessInvoice(request, initialInvoiceNumber, installmentNumber);
 
-                Customer customer;
-                if (existingCustomer != null)
+                if (createdInvoiceId == null)
                 {
-                    // Use the existing customer
-                    customer = existingCustomer;
-                }
-                else
-                {
-                    // Create a new customer
-                    var customerDto = new CreateCustomerDTO
-                    {
-                        CustomerName = request.Customer.CustomerName,
-                        CustomerNIC = request.Customer.CustomerNIC,
-                        CustomerAddress = request.Customer.CustomerAddress,
-                        CustomerContactNo = request.Customer.CustomerContactNo,
-                    };
-
-                    customer = _mapper.Map<Customer>(customerDto);
-                    _customerService.CreateCustomer(customer);
+                    // If something went wrong and the invoice was not created
+                    return BadRequest("Failed to create invoice.");
                 }
 
-                var Customer = _customerService.GetCustomerByNIC(request.Customer.CustomerNIC);
+                // Fetch the created invoice details to return (uncomment if needed)
+                // var createdInvoice = _invoiceService.GetInvoiceById(createdInvoiceId);
 
-                // Create a new transaction
-                var transaction = new Transaction
-                {
-                    CustomerId = customer.CustomerId,
-                    SubTotal = request.SubTotal,
-                    InterestRate = request.Interest,
-                    TotalAmount = request.TotalAmount,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
-                };
-
-                _transactionService.CreateTransaction(transaction);
-
-                // Create a new item
-                foreach (var item in request.Items)
-                {
-                    if (item.itemId == null || item.itemId == 0)
-                    {
-
-                        var itemDto = new Item
-                        {
-                            ItemDescription = item.ItemDescription,
-                            ItemCaratage = item.ItemCaratage,
-                            ItemGoldWeight = item.ItemGoldWeight,
-                            ItemValue = item.ItemValue,
-                            Status = 0,
-                            CustomerId = Customer.CustomerId,
-                        };
-
-                        var newItem = _mapper.Map<Item>(itemDto);
-                        _itemService.CreateItem(newItem);
-
-                        var transactionItem = new TransactionItem
-                        {
-                            TransactionId = transaction.TransactionId,
-                            ItemId = newItem.ItemId
-                        };
-
-                        _transactionItemService.CreateTransactionItem(transactionItem);
-                    }
-                    else
-                    {
-                         var transactionItem = new TransactionItem
-                        {
-                            TransactionId = transaction.TransactionId,
-                            ItemId = item.itemId
-                        };
-
-                        _transactionItemService.CreateTransactionItem(transactionItem);
-
-
-                    }
-                    
-                  
-                }
-          
-              
-
-                // Create a new invoice
-                var invoice = new Invoice
-                {
-                    InvoiceNo = _invoiceService.GenerateInvoiceNumber(),
-                    InvoiceTypeId = request.InvoiceTypeId,
-                    TransactionId = transaction.TransactionId,
-                    DateGenerated = DateTime.Now,
-                    Status = 1,
-                    //CreatedBy = request.CreatedBy,
-                    //UpdatedBy = request.UpdatedBy,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
-                    
-                };
-
-                _invoiceService.CreateInvoice(invoice);
-
-                var createdInvoice = _invoiceService.GetLastInvoice();
-
-                return Ok(createdInvoice.InvoiceId);
+                // If the invoice creation was successful, return the created invoice details (or Ok if not fetching details)
+                // return Ok(createdInvoice); // Uncomment if fetching and returning details
+                return Ok();
             }
             catch (Exception ex)
             {
-                // Log the exception
+                // Log the exception (assuming a logger is available)
+                //_logger.LogError(ex, "Error occurred while creating the invoice"); // Uncomment if you have a logger
+
+                // Return an internal server error status code with a generic message
                 return StatusCode(500, "Internal server error");
             }
         }
-
-       
-
 
         [HttpPut]
         [Route("{invoiceId}")]
@@ -246,6 +169,7 @@ namespace SMS.Controllers
                 }
 
                 var invoices = _invoiceService.GetInvoicesByCustomerId(customer.CustomerId);
+
                 var invoiceDTOs = invoices.Select(invoice => new GetInvoiceDTO
                 {
                     InvoiceId = invoice.InvoiceId,
@@ -255,7 +179,9 @@ namespace SMS.Controllers
                     CustomerNIC = customerNIC,
                     TotalAmount = invoice.Transaction != null ? invoice.Transaction.TotalAmount : null,
                     DateGenerated = invoice.DateGenerated,
-                    Status = invoice.Status
+                    Status = invoice.Status,
+                    LoanPeriod = invoice.Transaction != null ? invoice.Transaction.LoanPeriod?.Period : null,
+
                 }).ToList();
 
                 return Ok(invoiceDTOs);
@@ -290,5 +216,24 @@ namespace SMS.Controllers
                 return StatusCode(500, "Internal server error");
             }
         }
+
+        [HttpGet("InitialInvoice/{invoiceNumber}")]
+        public ActionResult<IEnumerable<LoanInfo>> GetInfoByInvoiceNumber(string invoiceNumber)
+        {
+            try
+            {
+                var info = _businessLogic.ProcessInstallments(invoiceNumber);
+
+                return Ok(info);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+
+
     }
 }

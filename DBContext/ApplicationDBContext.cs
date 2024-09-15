@@ -22,11 +22,12 @@ namespace SMS.DBContext
         public DbSet<Transaction> Transactions { get; set; }
         public DbSet<TransactionItem> TransactionItems { get; set; }
         public DbSet<Karat> Karats { get; set; }
-        public DbSet<LoanPeriod> LoanPeriods { get; set; }
         public DbSet<Pricing> Pricings { get; set; }
 
         public DbSet<InvoiceTypes> InvoiceTypes { get; set; }
-
+        public DbSet<Installment> Installments { get; set; }
+        public DbSet<Loan> Loans { get; set; }
+        public DbSet<LoanPeriod> LoanPeriods { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -130,9 +131,36 @@ namespace SMS.DBContext
                 new InvoiceTypes { InvoiceTypeId = 3, InvoiceTypeNumber = 3, InvoiceTypeName = "Settlement Invoice" }
             );
 
+            // Configure the relationship between Loan and Installment
+            modelBuilder.Entity<Installment>()
+                .HasOne(i => i.Loan)
+                .WithMany(l => l.Installments)
+                .HasForeignKey(i => i.LoanId)
+                .OnDelete(DeleteBehavior.Restrict); // This prevents cascading delete
+
+            // Configure the relationship between Installment and Transaction
+            modelBuilder.Entity<Installment>()
+                .HasOne(i => i.Transaction)
+                .WithMany(t => t.Installments)
+                .HasForeignKey(i => i.TransactionId)
+                .OnDelete(DeleteBehavior.Restrict); // This prevents cascading delete
+
+            // Additional configuration to ensure decimal precision and scale for other fields
+            modelBuilder.Entity<Installment>()
+                .Property(i => i.AmountPaid)
+                .HasColumnType("decimal(18,2)"); // Setting precision and scale
+
+            modelBuilder.Entity<Pricing>()
+                .Property(p => p.Price)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<TransactionItem>()
+                .Property(ti => ti.PawnValue)
+                .HasColumnType("decimal(18,2)");
+
             base.OnModelCreating(modelBuilder);
-        
-    }
+
+        }
 
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

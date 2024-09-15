@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SMS.DBContext;
 
@@ -11,9 +12,11 @@ using SMS.DBContext;
 namespace SMS.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240827172743_installments")]
+    partial class installments
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -275,6 +278,9 @@ namespace SMS.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("InstallmentId"));
 
+                    b.Property<decimal>("AmountDue")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<decimal>("AmountPaid")
                         .HasColumnType("decimal(18,2)");
 
@@ -283,12 +289,6 @@ namespace SMS.Migrations
 
                     b.Property<DateTime>("DueDate")
                         .HasColumnType("datetime2");
-
-                    b.Property<int>("InstallmentNumber")
-                        .HasColumnType("int");
-
-                    b.Property<int>("LoanId")
-                        .HasColumnType("int");
 
                     b.Property<DateTime?>("PaymentDate")
                         .HasColumnType("datetime2");
@@ -300,8 +300,6 @@ namespace SMS.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("InstallmentId");
-
-                    b.HasIndex("LoanId");
 
                     b.HasIndex("TransactionId");
 
@@ -350,6 +348,8 @@ namespace SMS.Migrations
                         .HasColumnType("bigint");
 
                     b.HasKey("InvoiceId");
+
+                    b.HasIndex("InvoiceTypeId");
 
                     b.HasIndex("TransactionId")
                         .IsUnique();
@@ -467,39 +467,6 @@ namespace SMS.Migrations
                     b.ToTable("Karats");
                 });
 
-            modelBuilder.Entity("SMS.Models.Loan", b =>
-                {
-                    b.Property<int>("LoanId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("LoanId"));
-
-                    b.Property<decimal>("AmountPaid")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("EndDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsSettled")
-                        .HasColumnType("bit");
-
-                    b.Property<decimal>("OutstandingAmount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("StartDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("TransactionId")
-                        .HasColumnType("int");
-
-                    b.HasKey("LoanId");
-
-                    b.HasIndex("TransactionId");
-
-                    b.ToTable("Loans");
-                });
-
             modelBuilder.Entity("SMS.Models.LoanPeriod", b =>
                 {
                     b.Property<int>("LoanPeriodId")
@@ -574,11 +541,8 @@ namespace SMS.Migrations
                     b.Property<decimal?>("SubTotal")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<decimal>("TotalAmount")
+                    b.Property<decimal?>("TotalAmount")
                         .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("TransactionType")
-                        .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -608,9 +572,6 @@ namespace SMS.Migrations
 
                     b.Property<int>("ItemId")
                         .HasColumnType("int");
-
-                    b.Property<decimal?>("PawnValue")
-                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("TransactionId")
                         .HasColumnType("int");
@@ -677,30 +638,30 @@ namespace SMS.Migrations
 
             modelBuilder.Entity("SMS.Models.Installment", b =>
                 {
-                    b.HasOne("SMS.Models.Loan", "Loan")
-                        .WithMany("Installments")
-                        .HasForeignKey("LoanId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("SMS.Models.Transaction", "Transaction")
-                        .WithMany("Installments")
+                        .WithMany()
                         .HasForeignKey("TransactionId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Loan");
 
                     b.Navigation("Transaction");
                 });
 
             modelBuilder.Entity("SMS.Models.Invoice", b =>
                 {
+                    b.HasOne("SMS.Models.InvoiceTypes", "InvoiceTypes")
+                        .WithMany()
+                        .HasForeignKey("InvoiceTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("SMS.Models.Transaction", "Transaction")
                         .WithOne("Invoice")
                         .HasForeignKey("SMS.Models.Invoice", "TransactionId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
+
+                    b.Navigation("InvoiceTypes");
 
                     b.Navigation("Transaction");
                 });
@@ -713,17 +674,6 @@ namespace SMS.Migrations
                         .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("Customer");
-                });
-
-            modelBuilder.Entity("SMS.Models.Loan", b =>
-                {
-                    b.HasOne("SMS.Models.Transaction", "Transaction")
-                        .WithMany()
-                        .HasForeignKey("TransactionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Transaction");
                 });
 
             modelBuilder.Entity("SMS.Models.Pricing", b =>
@@ -793,15 +743,8 @@ namespace SMS.Migrations
                     b.Navigation("TransactionItems");
                 });
 
-            modelBuilder.Entity("SMS.Models.Loan", b =>
-                {
-                    b.Navigation("Installments");
-                });
-
             modelBuilder.Entity("SMS.Models.Transaction", b =>
                 {
-                    b.Navigation("Installments");
-
                     b.Navigation("Invoice")
                         .IsRequired();
 

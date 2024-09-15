@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using SMS.Business;
 using SMS.DBContext;
 using SMS.Interfaces;
 using SMS.Models;
@@ -76,6 +77,9 @@ builder.Services.AddTransient<IInvoiceService, InvoiceService>();
 builder.Services.AddTransient<ITransactionService, TransactionService>();
 builder.Services.AddTransient<ITransactionItemService, TransactionItemService>();
 builder.Services.AddTransient<IKaratageService, KaratageService>();
+builder.Services.AddTransient<IInstallmentService, InstallmentService>();
+builder.Services.AddTransient<ILoanService, LoanService>();
+builder.Services.AddScoped<BusinessLogic>();
 builder.Services.AddTransient<IReadOnlyRepository, ReadOnlyRepository<ApplicationDbContext>>();
 
 var app = builder.Build();

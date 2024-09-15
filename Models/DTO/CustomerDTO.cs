@@ -27,7 +27,7 @@
         public string? CustomerName { get; set; }
         public string? CustomerAddress { get; set; }
         public string? CustomerContactNo { get; set; }
-        public DateTime? UpdatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? UpdatedAt { get; set; } = DateTime.Now;
     }
 
     public class CommonCustomerDTO

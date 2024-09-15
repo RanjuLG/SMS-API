@@ -36,13 +36,16 @@ namespace SMS.Services
             var endTime = dateTimeRange.To;
 
             var invoices = new List<GetInvoiceDTO>();
-            var invoices_ = _dbContext.Get<Invoice>(i => i.DeletedAt == null && i.CreatedAt <= endTime && i.CreatedAt >= startTime).ToList();
+            var invoices_ = _dbContext.Get<Invoice>(i => i.DeletedAt == null && i.CreatedAt <= endTime && i.CreatedAt >= startTime)
+                .Include(i => i.Transaction) // Ensure Transaction is included
+                .ThenInclude(t => t.LoanPeriod) // Ensure LoanPeriod is included
+                .ToList();
 
             foreach (var invoice_ in invoices_)
             {
                 var transaction = _transactionService.GetTransactionById(invoice_.TransactionId);
 
-                if(transaction == null)
+                if (transaction == null)
                 {
                     continue;
                 }
@@ -57,6 +60,7 @@ namespace SMS.Services
                     TotalAmount = transaction.TotalAmount,
                     DateGenerated = invoice_.DateGenerated,
                     Status = invoice_.Status,
+                    LoanPeriod = transaction.LoanPeriod?.Period // Map LoanPeriod
                 };
 
                 invoices.Add(invoice);
@@ -74,7 +78,6 @@ namespace SMS.Services
             }
 
             var transaction = _transactionService.GetTransactionById(invoice_.TransactionId);
-
             var invoice = new GetInvoiceDTO
             {
                 InvoiceId = invoice_.InvoiceId,
@@ -85,10 +88,12 @@ namespace SMS.Services
                 TotalAmount = transaction.TotalAmount,
                 DateGenerated = invoice_.DateGenerated,
                 Status = invoice_.Status,
+                LoanPeriod = transaction.LoanPeriod?.Period // Map LoanPeriod
             };
 
             return invoice;
         }
+
 
         public void CreateInvoice(Invoice invoice)
         {

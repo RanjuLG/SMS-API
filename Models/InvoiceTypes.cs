@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace SMS.Models
 {
     // Define the enum outside the class
-    public enum InvoiceType
+    public enum InvoiceTypess
     {
         InitialPawnInvoice = 1,
         InstallmentPaymentInvoice = 2,
