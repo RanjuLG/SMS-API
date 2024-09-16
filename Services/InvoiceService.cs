@@ -37,8 +37,7 @@ namespace SMS.Services
 
             var invoices = new List<GetInvoiceDTO>();
             var invoices_ = _dbContext.Get<Invoice>(i => i.DeletedAt == null && i.CreatedAt <= endTime && i.CreatedAt >= startTime)
-                .Include(i => i.Transaction) // Ensure Transaction is included
-                .ThenInclude(t => t.LoanPeriod) // Ensure LoanPeriod is included
+                .Include(i => i.Transaction) // Ensure Transaction is include
                 .ToList();
 
             foreach (var invoice_ in invoices_)
@@ -60,7 +59,7 @@ namespace SMS.Services
                     TotalAmount = transaction.TotalAmount,
                     DateGenerated = invoice_.DateGenerated,
                     Status = invoice_.Status,
-                    LoanPeriod = transaction.LoanPeriod?.Period // Map LoanPeriod
+                   // LoanPeriod = transaction.LoanPeriod?.Period // Map LoanPeriod
                 };
 
                 invoices.Add(invoice);
@@ -88,7 +87,7 @@ namespace SMS.Services
                 TotalAmount = transaction.TotalAmount,
                 DateGenerated = invoice_.DateGenerated,
                 Status = invoice_.Status,
-                LoanPeriod = transaction.LoanPeriod?.Period // Map LoanPeriod
+               //LoanPeriod = transaction.LoanPeriod?.Period // Map LoanPeriod
             };
 
             return invoice;
@@ -145,11 +144,15 @@ namespace SMS.Services
         {
             var lastInvoice = GetLastInvoice();
             int nextInvoiceNumber = lastInvoice == null ? 1 : lastInvoice.InvoiceId + 1;
-            return $"INVO{nextInvoiceNumber:D3}";
+            string todaysDate = DateTime.Today.ToString("yyyyMMdd");
+
+            return $"GC{todaysDate}{nextInvoiceNumber}";
         }
 
         public IEnumerable<Invoice> GetInvoicesByCustomerId(int customerId)
         {
+
+
             return _dbContext.Get<Invoice>(i => i.Transaction.CustomerId == customerId && i.DeletedAt == null).ToList();
         }
 

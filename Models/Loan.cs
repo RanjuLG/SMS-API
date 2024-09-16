@@ -8,6 +8,8 @@ namespace SMS.Models
         [Key]
         public int LoanId { get; set; }
 
+        [ForeignKey("LoanPeriod")]
+        public int? LoanPeriodId { get; set; }
         // Foreign key to Transaction
         [ForeignKey("Transaction")]
         public int TransactionId { get; set; }
@@ -21,5 +23,6 @@ namespace SMS.Models
         // Navigation Properties
         public virtual Transaction Transaction { get; set; }
         public virtual ICollection<Installment> Installments { get; set; }
+        public virtual LoanPeriod LoanPeriod { get; set; }
     }
 }

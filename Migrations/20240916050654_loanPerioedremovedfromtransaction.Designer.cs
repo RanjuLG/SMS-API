@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SMS.DBContext;
 
@@ -11,9 +12,11 @@ using SMS.DBContext;
 namespace SMS.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240916050654_loanPerioedremovedfromtransaction")]
+    partial class loanPerioedremovedfromtransaction
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -498,8 +501,6 @@ namespace SMS.Migrations
 
                     b.HasKey("LoanId");
 
-                    b.HasIndex("LoanPeriodId");
-
                     b.HasIndex("TransactionId");
 
                     b.ToTable("Loans");
@@ -720,17 +721,11 @@ namespace SMS.Migrations
 
             modelBuilder.Entity("SMS.Models.Loan", b =>
                 {
-                    b.HasOne("SMS.Models.LoanPeriod", "LoanPeriod")
-                        .WithMany()
-                        .HasForeignKey("LoanPeriodId");
-
                     b.HasOne("SMS.Models.Transaction", "Transaction")
                         .WithMany()
                         .HasForeignKey("TransactionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("LoanPeriod");
 
                     b.Navigation("Transaction");
                 });
