@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data.Entity;
 using System.Linq;
+using Azure.Core;
 using SMS.Enums;
 using SMS.Interfaces;
 using SMS.Models;
@@ -41,17 +42,20 @@ namespace SMS.Services
                              .Include(l => l.Installments)
                              .ToList();
         }
+        public Loan GetLoanByInitialInvoiceNumber(string initialInvoiceNumber)
+        {
+            var initialInvoice = _dbContext.Get<Invoice>(i => i.InvoiceNo == initialInvoiceNumber).FirstOrDefault();
+            return _dbContext.Get<Loan>(l => l.Transaction.TransactionId == initialInvoice.TransactionId)
+                             .Include(l => l.Transaction)
+                             .Include(l => l.Installments)
+                             .Include(l => l.LoanPeriod)
+                             .FirstOrDefault();
+        }
 
         public void CreateLoan(Loan loanDto)
         {
-            var loan = new Loan
-            {
-                TransactionId = loanDto.TransactionId,
-                StartDate = loanDto.StartDate,
-                EndDate = loanDto.EndDate
-            };
-
-            _dbContext.Create<Loan>(loan);
+            
+            _dbContext.Create<Loan>(loanDto);
             _dbContext.Save();
         }
 

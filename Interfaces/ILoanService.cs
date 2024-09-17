@@ -10,6 +10,7 @@ namespace SMS.Interfaces
         Loan GetLoanById(int loanId);
         IList<Loan> GetAllLoans();
         IList<Loan> GetLoansByCustomerId(int customerId);
+        Loan GetLoanByInitialInvoiceNumber(string initialInvoiceNumber);
         void CreateLoan(Loan loanDto);
         void UpdateLoan(Loan loanDto);
         void DeleteLoan(int loanId);

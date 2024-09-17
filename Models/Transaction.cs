@@ -14,11 +14,9 @@ namespace SMS.Models
 
         public decimal? SubTotal { get; set; }
         public decimal? InterestRate { get; set; }
-        public decimal TotalAmount { get; set; }
 
-        // New Field
-        [ForeignKey("LoanPeriod")]
-        public int? LoanPeriodId { get; set; }
+        public decimal? InterestAmount { get; set; }
+        public decimal TotalAmount { get; set; }
         public TransactionType TransactionType { get; set; }
         public long? CreatedBy { get; set; }
         public long? UpdatedBy { get; set; }
@@ -29,7 +27,6 @@ namespace SMS.Models
 
         // Navigation Properties
         public virtual Customer Customer { get; set; }
-        public virtual LoanPeriod LoanPeriod { get; set; }
         public virtual ICollection<TransactionItem> TransactionItems { get; set; }
         public virtual Invoice Invoice { get; set; }
         public virtual ICollection<Installment> Installments { get; set; }
