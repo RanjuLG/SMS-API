@@ -90,6 +90,9 @@ namespace SMS
 
             CreateMap<Installment, CreateInstallmentDTO>();
             CreateMap<CreateInstallmentDTO, Installment>();
+
+        
+               
         }
     }
 }
