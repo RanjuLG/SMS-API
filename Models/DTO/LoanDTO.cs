@@ -36,7 +36,9 @@
 
         public string InvoiceNo { get; set; }
         public int LoanId { get; set; }
-        public decimal AmountPaid { get; set; }
+        public decimal? PrincipleAmountPaid { get; set; }
+        public decimal? InterestAmountPaid { get; set; }
+        public decimal TotalAmountPaid { get; set; }
         public DateTime DatePaid { get; set; }
     }
 }

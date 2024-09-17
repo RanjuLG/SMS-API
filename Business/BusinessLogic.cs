@@ -346,6 +346,7 @@ namespace SMS.Business
                         CreatedAt = l.Transaction.CreatedAt,
                         SubTotal = l.Transaction.SubTotal,
                         InterestRate = l.Transaction.InterestRate,
+                        InterestAmount = l.Transaction.InterestAmount,
                         TotalAmount = l.Transaction.TotalAmount,
                         Customer = new GetCustomerDTO
                         {
@@ -371,7 +372,9 @@ namespace SMS.Business
                         InstallmentId = i.InstallmentId,
                         InvoiceNo = i.Transaction.Invoice.InvoiceNo,
                         LoanId = l.LoanId,
-                        AmountPaid = i.AmountPaid,
+                        PrincipleAmountPaid = i.Transaction.SubTotal,
+                        InterestAmountPaid = i.Transaction.InterestAmount,
+                        TotalAmountPaid = i.Transaction.TotalAmount,
                         DatePaid = i.PaymentDate ?? default(DateTime)
                     }).ToList()
                 }).ToList();
@@ -382,7 +385,7 @@ namespace SMS.Business
                     CustomerId = customer.CustomerId,
                     CustomerName = customer.CustomerName,
                     CustomerNIC = customer.CustomerNIC,
-                    Loans = loanDtos // Include the list of loans
+                    Loans = loanDtos.OrderByDescending(l=> l.StartDate).ToList() // Include the list of loans
                 };
 
                 return report;
