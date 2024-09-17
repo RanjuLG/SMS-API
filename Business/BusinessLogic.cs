@@ -332,6 +332,7 @@ namespace SMS.Business
                 var loanDtos = loans.Select(l => new LoanDTO
                 {
                     LoanId = l.LoanId,
+                    InvoiceNo = l.Transaction.Invoice.InvoiceNo,
                     TransactionId = l.TransactionId,
                     StartDate = l.StartDate,
                     EndDate = l.EndDate,
@@ -368,6 +369,7 @@ namespace SMS.Business
                     Installments = l.Installments.Select(i => new InstallmentDTO
                     {
                         InstallmentId = i.InstallmentId,
+                        InvoiceNo = i.Transaction.Invoice.InvoiceNo,
                         LoanId = l.LoanId,
                         AmountPaid = i.AmountPaid,
                         DatePaid = i.PaymentDate ?? default(DateTime)
