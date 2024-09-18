@@ -7,6 +7,7 @@ using SMS.Models;
 using SMS.Migrations;
 using SMS.Generic;
 using Azure.Core;
+using SMS.Enums;
 
 namespace SMS.Business
 {
@@ -66,7 +67,7 @@ namespace SMS.Business
 
                         transaction = CreateTransaction(customer.CustomerId,request, TransactionType.LoanIssuance);
                         loan = CreateLoan(transaction.TransactionId, request);
-                        ProcessItems(request.Items, transaction.TransactionId, customer.CustomerId);
+                        ProcessInitialItems(request.Items, transaction.TransactionId, customer.CustomerId);
                         invoice = CreateInvoice(transaction.TransactionId, InvoiceType.InitialPawnInvoice);
                         break;
 
@@ -83,6 +84,7 @@ namespace SMS.Business
 
                         if (isLoanSettled)
                         {
+                            ProcesSettlementItems(initialInvoiceNumber);
                             invoice = CreateInvoice(transaction.TransactionId, InvoiceType.SettlementInvoice);
                         }
 
@@ -137,7 +139,7 @@ namespace SMS.Business
             return transaction;
         }
 
-        private void ProcessItems(CustomItemDTO[] items, int transactionId, int customerId)
+        private void ProcessInitialItems(CustomItemDTO[] items, int transactionId, int customerId)
         {
             foreach (var item in items)
             {
@@ -149,7 +151,7 @@ namespace SMS.Business
                         ItemCaratage = item.ItemCaratage,
                         ItemGoldWeight = item.ItemGoldWeight,
                         ItemValue = item.ItemValue,
-                        Status = 0,
+                        Status = (int)ItemStatus.InStock,
                         CustomerId = customerId,
                     };
 
@@ -172,6 +174,23 @@ namespace SMS.Business
                     };
 
                     _transactionItemService.CreateTransactionItem(transactionItem);
+                }
+            }
+        }
+        private void ProcesSettlementItems(string initialInvoiceNumber)
+        {
+            var initialInvoice = _invoiceService.GetInvoiceByInvoiceNo(initialInvoiceNumber).FirstOrDefault();
+
+            if (initialInvoice != null)
+            {
+                var settlementItems = initialInvoice.Transaction.TransactionItems
+                    .SelectMany(i => new[] { i.Item });
+
+                foreach (var item in settlementItems)
+                {
+                    item.Status = (int)ItemStatus.Redeemed;
+                   
+                    _itemService.UpdateItem(item);
                 }
             }
         }
@@ -202,7 +221,12 @@ namespace SMS.Business
 
             if(intialInvoice != null)
             {
-                initialLoan = _loanService.GetAllLoans().Where(x => x.TransactionId == intialInvoice.TransactionId).ToList().FirstOrDefault();
+                IDateTimeRange dateTimeRange = new DateTimeRange
+                {
+                    From = DateTime.MinValue, // Set appropriate start date
+                    To = DateTime.MinValue // Set appropriate end date
+                };
+                initialLoan = _loanService.GetAllLoans(dateTimeRange).Where(x => x.TransactionId == intialInvoice.TransactionId).ToList().FirstOrDefault();
                
             }
 
@@ -494,8 +518,13 @@ namespace SMS.Business
 
             if (transactionId != null)
             {
+                IDateTimeRange dateTimeRange = new DateTimeRange
+                {
+                    From = DateTime.MinValue, // Set appropriate start date
+                    To = DateTime.MinValue // Set appropriate end date
+                };
                 // Find the loan associated with the transaction ID
-                var loan = _loanService.GetAllLoans()
+                var loan = _loanService.GetAllLoans(dateTimeRange)
                                        .Where(i => i.TransactionId == transactionId)
                                        .FirstOrDefault();
 
@@ -522,8 +551,13 @@ namespace SMS.Business
 
             if (transactionId != null)
             {
+                IDateTimeRange dateTimeRange = new DateTimeRange
+                {
+                    From = DateTime.MinValue, // Set appropriate start date
+                    To = DateTime.MinValue // Set appropriate end date
+                };
                 // Find the loan associated with the transaction ID
-                var loan = _loanService.GetAllLoans()
+                var loan = _loanService.GetAllLoans(dateTimeRange)
                                        .Where(i => i.TransactionId == transactionId)
                                        .FirstOrDefault();
                 var installments = _installmentService.GetInstallmentsByInitialInvoiceNumber(initialInvoiceNumber);
@@ -561,7 +595,7 @@ namespace SMS.Business
                 TotalAmount = invoice.Transaction.TotalAmount,
                 DateGenerated = invoice.DateGenerated,
                 Status = invoice.Status,
-                LoanPeriod = initialLoan.Where(t => t.TransactionId == invoice.TransactionId).FirstOrDefault()?.LoanPeriod.Period,
+                LoanPeriod = invoice.InvoiceTypeId==InvoiceType.InitialPawnInvoice ?  initialLoan.Where(t => t.TransactionId == invoice.TransactionId).FirstOrDefault()?.LoanPeriod.Period: null,
 
             });
 

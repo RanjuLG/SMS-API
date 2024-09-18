@@ -13,11 +13,13 @@ namespace SMS.Services
     {
         private readonly IRepository _dbContext;
         private readonly ITransactionService _transactionService;
+        private readonly ILoanService _loanService;
 
-        public InvoiceService(IRepository dbContext, ITransactionService transactionService)
+        public InvoiceService(IRepository dbContext, ITransactionService transactionService, ILoanService loanService)
         {
             _dbContext = dbContext;
             _transactionService = transactionService;
+            _loanService = loanService;
         }
 
         public IList<Invoice> GetAllInvoices()
@@ -49,6 +51,8 @@ namespace SMS.Services
                     continue;
                 }
 
+                var loans = _loanService.GetAllLoans(dateTimeRange);
+
                 var invoice = new GetInvoiceDTO
                 {
                     InvoiceId = invoice_.InvoiceId,
@@ -59,7 +63,7 @@ namespace SMS.Services
                     TotalAmount = transaction.TotalAmount,
                     DateGenerated = invoice_.DateGenerated,
                     Status = invoice_.Status,
-                   // LoanPeriod = transaction.LoanPeriod?.Period // Map LoanPeriod
+                   LoanPeriod = invoice_.InvoiceTypeId == InvoiceType.InitialPawnInvoice ? loans.Where(t => t.TransactionId == invoice_.TransactionId).FirstOrDefault()?.LoanPeriod.Period : null,
                 };
 
                 invoices.Add(invoice);
@@ -82,9 +86,9 @@ namespace SMS.Services
                 InvoiceId = invoice_.InvoiceId,
                 InvoiceTypeId = invoice_.InvoiceTypeId,
                 InvoiceNo = invoice_.InvoiceNo,
-                TransactionId = transaction.TransactionId,
-                CustomerNIC = transaction.Customer?.CustomerNIC,
-                TotalAmount = transaction.TotalAmount,
+                TransactionId = transaction?.TransactionId,
+                CustomerNIC = transaction?.Customer?.CustomerNIC,
+                TotalAmount = transaction?.TotalAmount,
                 DateGenerated = invoice_.DateGenerated,
                 Status = invoice_.Status,
                //LoanPeriod = transaction.LoanPeriod?.Period // Map LoanPeriod

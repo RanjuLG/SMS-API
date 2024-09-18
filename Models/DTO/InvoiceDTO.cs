@@ -23,12 +23,12 @@
             public int InvoiceId { get; set; }
             public string InvoiceNo { get; set; }
             public InvoiceType InvoiceTypeId { get; set; }
-            public int TransactionId { get; set; }
+            public int? TransactionId { get; set; }
             public string CustomerNIC { get; set; }
             public decimal? PrincipleAmount { get; set; }
             public decimal? InterestRate { get; set; }
             public decimal? InterestAmount { get; set; }
-            public decimal TotalAmount { get; set; }
+            public decimal? TotalAmount { get; set; }
             public DateTime? DateGenerated { get; set; }
             public int? Status { get; set; }
 
