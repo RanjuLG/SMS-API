@@ -32,7 +32,7 @@
             public DateTime? DateGenerated { get; set; }
             public int? Status { get; set; }
 
-            // New Property
+            public int daysSinceLastInstallment { get; set; }
             public int? LoanPeriod { get; set; } // e.g., "30 Days", "60 Days"
         }
 
@@ -115,6 +115,7 @@
             public int NumberOfInstallmentsPaid { get; set; }
             public int NumberOfInstallmentsToBePaid { get; set; }
             public bool IsLoanSettled { get; set; }
+            public int daysSinceLastInstallment { get; set; }
         }
     }
 }

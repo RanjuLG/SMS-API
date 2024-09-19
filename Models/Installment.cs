@@ -17,7 +17,7 @@ namespace SMS.Models
         public int LoanId { get; set; }
         public decimal AmountPaid { get; set; }
         public DateTime DueDate { get; set; }
-        public DateTime? PaymentDate { get; set; }
+        public DateTime PaymentDate { get; set; }
 
         // Navigation Properties
         public virtual Transaction Transaction { get; set; }

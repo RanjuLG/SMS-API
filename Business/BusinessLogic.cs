@@ -321,10 +321,11 @@ namespace SMS.Business
                 InterestRate = initialTransaction.InterestRate,
                 InterestAmount = initialTransaction.SubTotal * initialTransaction.InterestRate / 100,
                 TotalAmount = initialTransaction.TotalAmount,
-                LoanPeriod = initialLoan.LoanPeriod.Period,
-                NumberOfInstallmentsPaid = installments != null ? installments.Count : 0,
-                IsLoanSettled = installments.Count >= initialLoan.LoanPeriod.Period // Logic for loan settlement
-            };
+                LoanPeriod = initialLoan.Installments?.Count > 0 ? installments.Count : 0,
+                IsLoanSettled = initialLoan.IsSettled,
+                daysSinceLastInstallment = (installments?.Count > 0 && installments.OrderByDescending(d => d.PaymentDate).FirstOrDefault() != null) ? (DateTime.Now.Date - installments.OrderByDescending(d => d.PaymentDate).First().PaymentDate.Date).Days: 0,
+
+        };
 
             // Return the loan information object
             return loanInfo;
@@ -348,7 +349,6 @@ namespace SMS.Business
                 // Calculate totals
                 var totalLoanedAmount = loans.Sum(l => l.Transaction.TotalAmount);
                 var totalAmountPaid = loans.SelectMany(l => l.Installments)
-                                           .Where(i => i.PaymentDate.HasValue)
                                            .Sum(i => i.AmountPaid);
                 var totalOutstandingAmount = totalLoanedAmount - totalAmountPaid;
 
@@ -399,7 +399,7 @@ namespace SMS.Business
                         PrincipleAmountPaid = i.Transaction.SubTotal,
                         InterestAmountPaid = i.Transaction.InterestAmount,
                         TotalAmountPaid = i.Transaction.TotalAmount,
-                        DatePaid = i.PaymentDate ?? default(DateTime)
+                        DatePaid = i.PaymentDate
                     }).ToList()
                 }).ToList();
 
