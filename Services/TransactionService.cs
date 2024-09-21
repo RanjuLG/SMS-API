@@ -60,7 +60,7 @@ namespace SMS.Services
                     DueDate = i.DueDate,
                     PaymentDate = i.PaymentDate
                 }).ToList()
-            }).ToList();
+            }).OrderByDescending(a=> a.Invoice.DateGenerated).ToList();
 
             return transactionDTOs;
         }
