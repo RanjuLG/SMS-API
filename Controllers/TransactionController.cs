@@ -28,13 +28,13 @@ namespace SMS.Controllers
 
         [HttpGet]
         [Route("")]
-        public ActionResult<IEnumerable<TransactionDTO>> GetTransactions([FromQuery] DateTimeRange dataParams)
+        public ActionResult<IEnumerable<TransactionReportDTO>> GetTransactions([FromQuery] DateTimeRange dataParams)
         {
             try
             {
-                var transactions = _transactionService.GetAllTransactions(dataParams);
-                var transactionDTOs = _mapper.Map<IEnumerable<TransactionDTO>>(transactions);
-                return Ok(transactionDTOs);
+                var transactions = _transactionService.GetAllTransactions(dataParams).ToList();
+              // var transactionDTOs = _mapper.Map<IEnumerable<TransactionReportDTO>>(transactions);
+                return Ok(transactions);
             }
             catch (Exception ex)
             {

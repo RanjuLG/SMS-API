@@ -4,7 +4,7 @@ namespace SMS.Generic
 {
     public class DateTimeRange : IDateTimeRange
     {
-        public DateTime From { get; set; }
-        public DateTime To { get; set; }
+        public DateTime From { get; set; } = DateTime.MinValue;
+        public DateTime To { get; set; } = DateTime.MinValue;
     }
 }

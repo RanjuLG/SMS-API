@@ -198,8 +198,13 @@ namespace SMS.DBContext
         private string GenerateInvoiceNumber()
         {
             var lastInvoice = Invoices.OrderByDescending(i => i.InvoiceId).FirstOrDefault();
+
             int nextInvoiceNumber = lastInvoice == null ? 1 : lastInvoice.InvoiceId + 1;
-            return $"INVO{nextInvoiceNumber:D3}";
+
+            // Get today's date in the specified format
+            string todaysDate = DateTime.Today.ToString("yyyyMMdd");
+
+            return $"GC{todaysDate}{nextInvoiceNumber}";
         }
 
 

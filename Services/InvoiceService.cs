@@ -13,11 +13,13 @@ namespace SMS.Services
     {
         private readonly IRepository _dbContext;
         private readonly ITransactionService _transactionService;
+        private readonly ILoanService _loanService;
 
-        public InvoiceService(IRepository dbContext, ITransactionService transactionService)
+        public InvoiceService(IRepository dbContext, ITransactionService transactionService, ILoanService loanService)
         {
             _dbContext = dbContext;
             _transactionService = transactionService;
+            _loanService = loanService;
         }
 
         public IList<Invoice> GetAllInvoices()
@@ -37,8 +39,7 @@ namespace SMS.Services
 
             var invoices = new List<GetInvoiceDTO>();
             var invoices_ = _dbContext.Get<Invoice>(i => i.DeletedAt == null && i.CreatedAt <= endTime && i.CreatedAt >= startTime)
-                .Include(i => i.Transaction) // Ensure Transaction is included
-                .ThenInclude(t => t.LoanPeriod) // Ensure LoanPeriod is included
+                .Include(i => i.Transaction) // Ensure Transaction is include
                 .ToList();
 
             foreach (var invoice_ in invoices_)
@@ -50,6 +51,8 @@ namespace SMS.Services
                     continue;
                 }
 
+                var loans = _loanService.GetAllLoans(dateTimeRange);
+
                 var invoice = new GetInvoiceDTO
                 {
                     InvoiceId = invoice_.InvoiceId,
@@ -60,7 +63,7 @@ namespace SMS.Services
                     TotalAmount = transaction.TotalAmount,
                     DateGenerated = invoice_.DateGenerated,
                     Status = invoice_.Status,
-                    LoanPeriod = transaction.LoanPeriod?.Period // Map LoanPeriod
+                   LoanPeriod = invoice_.InvoiceTypeId == InvoiceType.InitialPawnInvoice ? loans.Where(t => t.TransactionId == invoice_.TransactionId).FirstOrDefault()?.LoanPeriod.Period : null,
                 };
 
                 invoices.Add(invoice);
@@ -83,12 +86,12 @@ namespace SMS.Services
                 InvoiceId = invoice_.InvoiceId,
                 InvoiceTypeId = invoice_.InvoiceTypeId,
                 InvoiceNo = invoice_.InvoiceNo,
-                TransactionId = transaction.TransactionId,
-                CustomerNIC = transaction.Customer?.CustomerNIC,
-                TotalAmount = transaction.TotalAmount,
+                TransactionId = transaction?.TransactionId,
+                CustomerNIC = transaction?.Customer?.CustomerNIC,
+                TotalAmount = transaction?.TotalAmount,
                 DateGenerated = invoice_.DateGenerated,
                 Status = invoice_.Status,
-                LoanPeriod = transaction.LoanPeriod?.Period // Map LoanPeriod
+               //LoanPeriod = transaction.LoanPeriod?.Period // Map LoanPeriod
             };
 
             return invoice;
@@ -145,11 +148,15 @@ namespace SMS.Services
         {
             var lastInvoice = GetLastInvoice();
             int nextInvoiceNumber = lastInvoice == null ? 1 : lastInvoice.InvoiceId + 1;
-            return $"INVO{nextInvoiceNumber:D3}";
+            string todaysDate = DateTime.Today.ToString("yyyyMMdd");
+
+            return $"GC{todaysDate}{nextInvoiceNumber}";
         }
 
         public IEnumerable<Invoice> GetInvoicesByCustomerId(int customerId)
         {
+
+
             return _dbContext.Get<Invoice>(i => i.Transaction.CustomerId == customerId && i.DeletedAt == null).ToList();
         }
 

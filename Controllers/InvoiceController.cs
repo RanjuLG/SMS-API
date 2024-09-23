@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Castle.Core.Resource;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SMS.Business;
 using SMS.Generic;
@@ -87,10 +88,18 @@ namespace SMS.Controllers
         {
             try
             {
+                int? statusCode = 0;
                 // Process the invoice using the business logic method
-                var createdInvoiceId = _businessLogic.ProcessInvoice(request, initialInvoiceNumber, installmentNumber);
-
-                if (createdInvoiceId == null)
+                var result = _businessLogic.ProcessInvoice(request, initialInvoiceNumber, installmentNumber);
+                if (result is OkObjectResult okResult)
+                {
+                   statusCode = okResult.StatusCode; // Access StatusCode
+                }
+                else if (result is BadRequestObjectResult badRequestResult)
+                {
+                    statusCode = badRequestResult.StatusCode;
+                }
+                if (statusCode != 200)
                 {
                     // If something went wrong and the invoice was not created
                     return BadRequest("Failed to create invoice.");
@@ -168,23 +177,12 @@ namespace SMS.Controllers
                     return NotFound("Customer not found.");
                 }
 
-                var invoices = _invoiceService.GetInvoicesByCustomerId(customer.CustomerId);
+                // var invoices = _invoiceService.GetInvoicesByCustomerId(customer.CustomerId);
 
-                var invoiceDTOs = invoices.Select(invoice => new GetInvoiceDTO
-                {
-                    InvoiceId = invoice.InvoiceId,
-                    InvoiceTypeId = invoice.InvoiceTypeId,
-                    InvoiceNo = invoice.InvoiceNo,
-                    TransactionId = invoice.TransactionId,
-                    CustomerNIC = customerNIC,
-                    TotalAmount = invoice.Transaction != null ? invoice.Transaction.TotalAmount : null,
-                    DateGenerated = invoice.DateGenerated,
-                    Status = invoice.Status,
-                    LoanPeriod = invoice.Transaction != null ? invoice.Transaction.LoanPeriod?.Period : null,
+                var invoices = _businessLogic.GetInvoicesByCustomer(customer);
 
-                }).ToList();
 
-                return Ok(invoiceDTOs);
+                return Ok(invoices);
             }
             catch (Exception ex)
             {

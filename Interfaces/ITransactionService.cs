@@ -1,12 +1,13 @@
 ﻿using SMS.Enums;
 using SMS.Models;
+using SMS.Models.DTO;
 using System.Collections.Generic;
 
 namespace SMS.Interfaces
 {
     public interface ITransactionService
     {
-        IList<Transaction> GetAllTransactions(IDateTimeRange dateTimeRange);
+        IList<TransactionReportDTO> GetAllTransactions(IDateTimeRange dateTimeRange);
         Transaction GetTransactionById(int transactionId);
         List<Transaction> GetTransactionsByIds(List<int> transactionIds);
         void CreateTransaction(Transaction transaction);

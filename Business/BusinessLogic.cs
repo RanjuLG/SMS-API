@@ -6,6 +6,8 @@ using SMS.Models.DTO;
 using SMS.Models;
 using SMS.Migrations;
 using SMS.Generic;
+using Azure.Core;
+using SMS.Enums;
 
 namespace SMS.Business
 {
@@ -20,6 +22,8 @@ namespace SMS.Business
         private readonly IKaratageService _karatageService;
         private readonly IInstallmentService _installmentService;
         private readonly IMapper _mapper;
+
+        public object StartDate { get; private set; }
 
         public BusinessLogic(
             ICustomerService customerService,
@@ -61,25 +65,26 @@ namespace SMS.Business
                 {
                     case InvoiceType.InitialPawnInvoice:
 
-                        transaction = CreateTransaction(customer.CustomerId, request.SubTotal, request.Interest, request.TotalAmount, TransactionType.LoanIssuance, request.LoanPeriodId);
-                        loan = CreateLoan(transaction.TransactionId, request.Date, request.LoanPeriodId);
-                        ProcessItems(request.Items, transaction.TransactionId, customer.CustomerId);
+                        transaction = CreateTransaction(customer.CustomerId,request, TransactionType.LoanIssuance);
+                        loan = CreateLoan(transaction.TransactionId, request);
+                        ProcessInitialItems(request.Items, transaction.TransactionId, customer.CustomerId);
                         invoice = CreateInvoice(transaction.TransactionId, InvoiceType.InitialPawnInvoice);
                         break;
 
                     case InvoiceType.InstallmentPaymentInvoice:
-                        transaction = CreateTransaction(customer.CustomerId, request.SubTotal, request.Interest, request.TotalAmount, TransactionType.InstallmentPayment);
+                        transaction = CreateTransaction(customer.CustomerId, request, TransactionType.InstallmentPayment);
                         installment = CreateInstallment(initialInvoiceNumber, transaction.TransactionId, installmentNumber);
                         loan = UpdateInitialLoan(initialInvoiceNumber, transaction.TotalAmount);
                         invoice = CreateInvoice(transaction.TransactionId, InvoiceType.InstallmentPaymentInvoice);
                         break;
 
                     case InvoiceType.SettlementInvoice:
-                        transaction = CreateTransaction(customer.CustomerId, request.SubTotal, request.Interest, request.TotalAmount, TransactionType.LoanClosure);
+                        transaction = CreateTransaction(customer.CustomerId,request, TransactionType.LoanClosure);
                         var isLoanSettled = SettleLoan(initialInvoiceNumber);
 
                         if (isLoanSettled)
                         {
+                            ProcesSettlementItems(initialInvoiceNumber);
                             invoice = CreateInvoice(transaction.TransactionId, InvoiceType.SettlementInvoice);
                         }
 
@@ -116,16 +121,16 @@ namespace SMS.Business
             }
         }
 
-        private Transaction CreateTransaction(int customerId, decimal subTotal, decimal interestRate, decimal totalAmount, TransactionType transactionType, int? loanPeriodId = null)
+        private Transaction CreateTransaction(int customerId, CreateInvoiceDTO request, TransactionType transactionType)
         {
             var transaction = new Transaction
             {
                 CustomerId = customerId,
-                SubTotal = subTotal,
-                InterestRate = interestRate,
-                TotalAmount = totalAmount,
+                SubTotal = request.SubTotal,
+                InterestRate = request.InterestRate,
+                InterestAmount = request.InterestAmount,
+                TotalAmount = request.TotalAmount,
                 TransactionType = transactionType,
-                LoanPeriodId = loanPeriodId,
                 CreatedAt = DateTime.Now,
                 UpdatedAt = DateTime.Now
             };
@@ -134,7 +139,7 @@ namespace SMS.Business
             return transaction;
         }
 
-        private void ProcessItems(CustomItemDTO[] items, int transactionId, int customerId)
+        private void ProcessInitialItems(CustomItemDTO[] items, int transactionId, int customerId)
         {
             foreach (var item in items)
             {
@@ -146,7 +151,7 @@ namespace SMS.Business
                         ItemCaratage = item.ItemCaratage,
                         ItemGoldWeight = item.ItemGoldWeight,
                         ItemValue = item.ItemValue,
-                        Status = 0,
+                        Status = (int)ItemStatus.InStock,
                         CustomerId = customerId,
                     };
 
@@ -169,6 +174,23 @@ namespace SMS.Business
                     };
 
                     _transactionItemService.CreateTransactionItem(transactionItem);
+                }
+            }
+        }
+        private void ProcesSettlementItems(string initialInvoiceNumber)
+        {
+            var initialInvoice = _invoiceService.GetInvoiceByInvoiceNo(initialInvoiceNumber).FirstOrDefault();
+
+            if (initialInvoice != null)
+            {
+                var settlementItems = initialInvoice.Transaction.TransactionItems
+                    .SelectMany(i => new[] { i.Item });
+
+                foreach (var item in settlementItems)
+                {
+                    item.Status = (int)ItemStatus.Redeemed;
+                   
+                    _itemService.UpdateItem(item);
                 }
             }
         }
@@ -199,7 +221,12 @@ namespace SMS.Business
 
             if(intialInvoice != null)
             {
-                initialLoan = _loanService.GetAllLoans().Where(x => x.TransactionId == intialInvoice.TransactionId).ToList().FirstOrDefault();
+                IDateTimeRange dateTimeRange = new DateTimeRange
+                {
+                    From = DateTime.MinValue, // Set appropriate start date
+                    To = DateTime.MinValue // Set appropriate end date
+                };
+                initialLoan = _loanService.GetAllLoans(dateTimeRange).Where(x => x.TransactionId == intialInvoice.TransactionId).ToList().FirstOrDefault();
                
             }
 
@@ -222,20 +249,20 @@ namespace SMS.Business
             };
 
             return null;
-
         }
 
-        private Loan CreateLoan (int TransactionID,DateTime StartDate,int? loanPeriodId )
+        private Loan CreateLoan (int TransactionID,CreateInvoiceDTO request)
         {
-            var loanPeriod = _karatageService.GetLoanPeriodById(loanPeriodId.Value);
+            var loanPeriod = _karatageService.GetLoanPeriodById(request.LoanPeriodId.Value);
 
             if(loanPeriod != null)
             {
                 var loan = new Loan
-                {
+                {   LoanPeriodId = request.LoanPeriodId,
                     TransactionId = TransactionID,
-                    StartDate = StartDate,
-                    EndDate = StartDate.AddMonths(loanPeriod.Period)
+                    StartDate = request.Date,
+                    OutstandingAmount = request.TotalAmount,
+                    EndDate = request.Date.AddMonths(loanPeriod.Period)
 
                 };
 
@@ -254,46 +281,67 @@ namespace SMS.Business
 
         public LoanInfo ProcessInstallments(string initialInvoiceNumber)
         {
-            // Retrieve and sort installments
+            // Retrieve and sort installments, ensure the list is non-null
             var installments = _installmentService.GetInstallmentsByInitialInvoiceNumber(initialInvoiceNumber)
-                                                  .OrderBy(x => x.InstallmentNumber)
-                                                  .ToList();
+                                                  ?.OrderBy(x => x.InstallmentNumber)
+                                                  ?.ToList();
+           
 
-            // Get initial invoice details
-            var initialInvoice = _invoiceService.GetInvoiceByInvoiceNo(initialInvoiceNumber).FirstOrDefault();
+            // Get initial invoice details, ensure it's non-null
+            var initialInvoice = _invoiceService.GetInvoiceByInvoiceNo(initialInvoiceNumber)?.FirstOrDefault();
             if (initialInvoice == null)
             {
                 return null;
             }
 
-            // Get transaction details
+            // Get initial loan details, ensure it's non-null
+            var initialLoan = _loanService.GetLoanByInitialInvoiceNumber(initialInvoiceNumber);
+            if (initialLoan == null)
+            {
+                return null;
+            }
+
+            // Get transaction details, ensure it's non-null
             var initialTransaction = _transactionService.GetTransactionById(initialInvoice.TransactionId);
             if (initialTransaction == null)
             {
                 return null;
             }
 
-            // Determine if the loan is settled
-          //  bool isLoanSettled = initialTransaction.LoanPeriod?.Period == installments.Count;
+            // Ensure the loan period and period value are non-null before accessing them
+            if (initialLoan.LoanPeriod == null || initialLoan.LoanPeriod.Period <= 0)
+            {
+                return null;
+            }
+            var daysSinceLastInstallment = (installments?.Count > 0 && installments.OrderByDescending(d => d.PaymentDate)
+                                            .FirstOrDefault() != null) ? (DateTime.Now.Date - installments.
+                                            OrderByDescending(d => d.PaymentDate).First().PaymentDate.Date).Days : 0;
+
+            var totalLoanDays = (initialLoan.EndDate.Date - initialLoan.StartDate.Date).Days;
+
+            var totalInterestAmount = initialTransaction.SubTotal * initialTransaction.InterestRate / 100;
+            var interestForOneDay = totalInterestAmount / totalLoanDays;
+            var interestForInstallment = interestForOneDay * daysSinceLastInstallment;
 
             // Create a data object to return
             var loanInfo = new LoanInfo
             {
-                LoanAmount = initialTransaction.SubTotal,
+                PrincipleAmount = initialTransaction.SubTotal,
                 InterestRate = initialTransaction.InterestRate,
-                InterestAmount = initialTransaction.SubTotal * initialTransaction.InterestRate / 100,
+                InterestAmount = totalInterestAmount,
+                DailyInterestAmount = interestForInstallment,
                 TotalAmount = initialTransaction.TotalAmount,
-                LoanPeriod = initialTransaction.LoanPeriod.Period,
-                NumberOfInstallments = initialTransaction.LoanPeriod.Period,
-                InstallmentValue = initialTransaction.TotalAmount / initialTransaction.LoanPeriod.Period,
-                NumberOfInstallmentsPaid = installments.Count,
-                NumberOfInstallmentsToBePaid = initialTransaction.LoanPeriod.Period - installments.Count,
-                IsLoanSettled = false
-            };
+                LoanPeriod = initialLoan.LoanPeriod.Period, 
+                IsLoanSettled = initialLoan.IsSettled,
+                DaysSinceLastInstallment = (installments?.Count > 0 && installments.OrderByDescending(d => d.PaymentDate)
+                                            .FirstOrDefault() != null) ? (DateTime.Now.Date - installments.
+                                            OrderByDescending(d => d.PaymentDate).First().PaymentDate.Date).Days: 0,
+        };
 
             // Return the loan information object
             return loanInfo;
         }
+
 
         public ReportDTO ProcessSingleReport(int customerId)
         {
@@ -312,7 +360,6 @@ namespace SMS.Business
                 // Calculate totals
                 var totalLoanedAmount = loans.Sum(l => l.Transaction.TotalAmount);
                 var totalAmountPaid = loans.SelectMany(l => l.Installments)
-                                           .Where(i => i.PaymentDate.HasValue)
                                            .Sum(i => i.AmountPaid);
                 var totalOutstandingAmount = totalLoanedAmount - totalAmountPaid;
 
@@ -320,6 +367,7 @@ namespace SMS.Business
                 var loanDtos = loans.Select(l => new LoanDTO
                 {
                     LoanId = l.LoanId,
+                    InvoiceNo = l.Transaction.Invoice.InvoiceNo,
                     TransactionId = l.TransactionId,
                     StartDate = l.StartDate,
                     EndDate = l.EndDate,
@@ -333,6 +381,7 @@ namespace SMS.Business
                         CreatedAt = l.Transaction.CreatedAt,
                         SubTotal = l.Transaction.SubTotal,
                         InterestRate = l.Transaction.InterestRate,
+                        InterestAmount = l.Transaction.InterestAmount,
                         TotalAmount = l.Transaction.TotalAmount,
                         Customer = new GetCustomerDTO
                         {
@@ -356,9 +405,12 @@ namespace SMS.Business
                     Installments = l.Installments.Select(i => new InstallmentDTO
                     {
                         InstallmentId = i.InstallmentId,
+                        InvoiceNo = i.Transaction.Invoice.InvoiceNo,
                         LoanId = l.LoanId,
-                        AmountPaid = i.AmountPaid,
-                        DatePaid = i.PaymentDate ?? default(DateTime)
+                        PrincipleAmountPaid = i.Transaction.SubTotal,
+                        InterestAmountPaid = i.Transaction.InterestAmount,
+                        TotalAmountPaid = i.Transaction.TotalAmount,
+                        DatePaid = i.PaymentDate
                     }).ToList()
                 }).ToList();
 
@@ -368,7 +420,7 @@ namespace SMS.Business
                     CustomerId = customer.CustomerId,
                     CustomerName = customer.CustomerName,
                     CustomerNIC = customer.CustomerNIC,
-                    Loans = loanDtos // Include the list of loans
+                    Loans = loanDtos.OrderByDescending(l=> l.StartDate).ToList() // Include the list of loans
                 };
 
                 return report;
@@ -477,8 +529,13 @@ namespace SMS.Business
 
             if (transactionId != null)
             {
+                IDateTimeRange dateTimeRange = new DateTimeRange
+                {
+                    From = DateTime.MinValue, // Set appropriate start date
+                    To = DateTime.MinValue // Set appropriate end date
+                };
                 // Find the loan associated with the transaction ID
-                var loan = _loanService.GetAllLoans()
+                var loan = _loanService.GetAllLoans(dateTimeRange)
                                        .Where(i => i.TransactionId == transactionId)
                                        .FirstOrDefault();
 
@@ -505,8 +562,13 @@ namespace SMS.Business
 
             if (transactionId != null)
             {
+                IDateTimeRange dateTimeRange = new DateTimeRange
+                {
+                    From = DateTime.MinValue, // Set appropriate start date
+                    To = DateTime.MinValue // Set appropriate end date
+                };
                 // Find the loan associated with the transaction ID
-                var loan = _loanService.GetAllLoans()
+                var loan = _loanService.GetAllLoans(dateTimeRange)
                                        .Where(i => i.TransactionId == transactionId)
                                        .FirstOrDefault();
                 var installments = _installmentService.GetInstallmentsByInitialInvoiceNumber(initialInvoiceNumber);
@@ -524,6 +586,32 @@ namespace SMS.Business
             }
             return null;
         }
+
+        public IEnumerable<GetInvoiceDTO> GetInvoicesByCustomer(Customer customer)
+        {
+            var invoices = _invoiceService.GetInvoicesByCustomerId(customer.CustomerId);
+
+            var initialLoan = _loanService.GetLoansByCustomerId(customer.CustomerId);
+
+            var invoiceDTOs = invoices.Select(invoice => new GetInvoiceDTO
+            {
+                InvoiceId = invoice.InvoiceId,
+                InvoiceTypeId = invoice.InvoiceTypeId,
+                InvoiceNo = invoice.InvoiceNo,
+                TransactionId = invoice.TransactionId,
+                CustomerNIC = customer.CustomerNIC,
+                PrincipleAmount = invoice.Transaction.SubTotal,
+                InterestRate = invoice.Transaction.InterestRate,
+                InterestAmount = invoice.Transaction.InterestAmount,
+                TotalAmount = invoice.Transaction.TotalAmount,
+                DateGenerated = invoice.DateGenerated,
+                Status = invoice.Status,
+                LoanPeriod = invoice.InvoiceTypeId==InvoiceType.InitialPawnInvoice ?  initialLoan.Where(t => t.TransactionId == invoice.TransactionId).FirstOrDefault()?.LoanPeriod.Period: null,
+
+            });
+
+            return invoiceDTOs;
+        } 
 
 
     }
