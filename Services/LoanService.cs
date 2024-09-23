@@ -27,12 +27,28 @@ namespace SMS.Services
                              .FirstOrDefault();
         }
 
-        public IList<Loan> GetAllLoans()
+        public IList<Loan> GetAllLoans(IDateTimeRange dateTimeRange)
         {
-            return _dbContext.Get<Loan>()
+            var from = dateTimeRange.From;
+            var to = dateTimeRange.To;
+
+            if(from != DateTime.MinValue && to != DateTime.MinValue)
+            {
+                return _dbContext.Get<Loan>(i => i.StartDate <= to && i.StartDate >= from)
                              .Include(l => l.Transaction)
                              .Include(l => l.Installments)
                              .ToList();
+
+            }
+            else
+            {
+                return _dbContext.Get<Loan>()
+                             .Include(l => l.Transaction)
+                             .Include(l => l.Installments)
+                             .ToList();
+
+            }
+            
         }
 
         public IList<Loan> GetLoansByCustomerId(int customerId)

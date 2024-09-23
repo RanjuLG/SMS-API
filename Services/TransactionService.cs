@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using SMS.Generic;
 using SMS.Interfaces;
 using SMS.Models;
+using SMS.Models.DTO.SMS.Models.DTO;
+using SMS.Models.DTO;
 
 namespace SMS.Services
 {
@@ -16,18 +18,53 @@ namespace SMS.Services
             _dbContext = dbContext;
         }
 
-        public IList<Transaction> GetAllTransactions(IDateTimeRange dateTimeRange)
+        public IList<TransactionReportDTO> GetAllTransactions(IDateTimeRange dateTimeRange)
         {
             var startTime = dateTimeRange.From;
             var endTime = dateTimeRange.To;
 
-            return _dbContext.Get<Transaction>(i => i.DeletedAt == null && i.CreatedAt <= endTime && i.CreatedAt >= startTime)
-                             .Include(t => t.Customer)
-                             .Include(t => t.Invoice)
-                             .Include(t => t.TransactionItems)
-                                 .ThenInclude(ti => ti.Item)
-                             .ToList();
+            var transactions = _dbContext.Get<Transaction>(i => i.DeletedAt == null && i.CreatedAt <= endTime && i.CreatedAt >= startTime)
+                                         .Include(t => t.Invoice)
+                                         .Include(t => t.Installments)
+                                         .ToList();
+
+            var transactionDTOs = transactions.Select(t => new TransactionReportDTO
+            {
+                TransactionId = t.TransactionId,
+                TransactionType = t.TransactionType,
+                CreatedAt = t.CreatedAt,
+                SubTotal = t.SubTotal,
+                InterestRate = t.InterestRate,
+                InterestAmount = t.InterestAmount,
+                TotalAmount = t.TotalAmount,
+                Customer = t.Customer != null ? new CustomerReportDTO
+                {
+                    CustomerNIC = t.Customer.CustomerNIC,
+                    CustomerName = t.Customer.CustomerName,
+                    CustomerAddress = t.Customer.CustomerAddress,
+                    CustomerContactNo = t.Customer.CustomerContactNo,
+                } : null,
+                Invoice = t.Invoice != null ? new InvoiceReportDTO
+                {
+                    InvoiceId = t.Invoice.InvoiceId,
+                    InvoiceTypeId = t.Invoice.InvoiceTypeId,
+                    InvoiceNo = t.Invoice.InvoiceNo,
+                    DateGenerated = t.Invoice.DateGenerated,
+                    Status = t.Invoice.Status
+                } : null,
+                Installments = t.Installments?.Select(i => new InstallmentReportDTO
+                {
+                    InstallmentId = i.InstallmentId,
+                    InstallmentNumber = i.InstallmentNumber,
+                    AmountPaid = i.AmountPaid,
+                    DueDate = i.DueDate,
+                    PaymentDate = i.PaymentDate
+                }).ToList()
+            }).OrderByDescending(a=> a.Invoice.DateGenerated).ToList();
+
+            return transactionDTOs;
         }
+
 
         public Transaction GetTransactionById(int transactionId)
         {

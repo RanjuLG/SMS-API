@@ -8,7 +8,7 @@ namespace SMS.Interfaces
     public interface ILoanService
     {
         Loan GetLoanById(int loanId);
-        IList<Loan> GetAllLoans();
+        IList<Loan> GetAllLoans(IDateTimeRange dateTimeRange);
         IList<Loan> GetLoansByCustomerId(int customerId);
         Loan GetLoanByInitialInvoiceNumber(string initialInvoiceNumber);
         void CreateLoan(Loan loanDto);
