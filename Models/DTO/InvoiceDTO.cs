@@ -108,6 +108,7 @@
             public decimal? PrincipleAmount { get; set; }
             public decimal? InterestRate { get; set; }
             public decimal? InterestAmount { get; set; }
+            public decimal? DailyInterestAmount { get; set; }
             public decimal TotalAmount { get; set; }
             public int LoanPeriod { get; set; }
             public int NumberOfInstallments { get; set; }
@@ -115,7 +116,7 @@
             public int NumberOfInstallmentsPaid { get; set; }
             public int NumberOfInstallmentsToBePaid { get; set; }
             public bool IsLoanSettled { get; set; }
-            public int daysSinceLastInstallment { get; set; }
+            public int DaysSinceLastInstallment { get; set; }
         }
     }
 }

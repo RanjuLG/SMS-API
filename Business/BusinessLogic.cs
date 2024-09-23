@@ -313,18 +313,29 @@ namespace SMS.Business
             {
                 return null;
             }
+            var daysSinceLastInstallment = (installments?.Count > 0 && installments.OrderByDescending(d => d.PaymentDate)
+                                            .FirstOrDefault() != null) ? (DateTime.Now.Date - installments.
+                                            OrderByDescending(d => d.PaymentDate).First().PaymentDate.Date).Days : 0;
+
+            var totalLoanDays = (initialLoan.EndDate.Date - initialLoan.StartDate.Date).Days;
+
+            var totalInterestAmount = initialTransaction.SubTotal * initialTransaction.InterestRate / 100;
+            var interestForOneDay = totalInterestAmount / totalLoanDays;
+            var interestForInstallment = interestForOneDay * daysSinceLastInstallment;
 
             // Create a data object to return
             var loanInfo = new LoanInfo
             {
                 PrincipleAmount = initialTransaction.SubTotal,
                 InterestRate = initialTransaction.InterestRate,
-                InterestAmount = initialTransaction.SubTotal * initialTransaction.InterestRate / 100,
+                InterestAmount = totalInterestAmount,
+                DailyInterestAmount = interestForInstallment,
                 TotalAmount = initialTransaction.TotalAmount,
-                LoanPeriod = initialLoan.Installments?.Count > 0 ? installments.Count : 0,
+                LoanPeriod = initialLoan.LoanPeriod.Period, 
                 IsLoanSettled = initialLoan.IsSettled,
-                daysSinceLastInstallment = (installments?.Count > 0 && installments.OrderByDescending(d => d.PaymentDate).FirstOrDefault() != null) ? (DateTime.Now.Date - installments.OrderByDescending(d => d.PaymentDate).First().PaymentDate.Date).Days: 0,
-
+                DaysSinceLastInstallment = (installments?.Count > 0 && installments.OrderByDescending(d => d.PaymentDate)
+                                            .FirstOrDefault() != null) ? (DateTime.Now.Date - installments.
+                                            OrderByDescending(d => d.PaymentDate).First().PaymentDate.Date).Days: 0,
         };
 
             // Return the loan information object
