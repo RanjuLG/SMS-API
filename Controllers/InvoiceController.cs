@@ -216,7 +216,7 @@ namespace SMS.Controllers
         }
 
         [HttpGet("InitialInvoice/{invoiceNumber}")]
-        public ActionResult<IEnumerable<LoanInfo>> GetInfoByInvoiceNumber(string invoiceNumber)
+        public ActionResult<LoanInfo> GetInfoByInvoiceNumber(string invoiceNumber)
         {
             try
             {
