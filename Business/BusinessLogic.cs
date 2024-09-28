@@ -66,21 +66,21 @@ namespace SMS.Business
                 {
                     case InvoiceType.InitialPawnInvoice:
 
-                        transaction = CreateTransaction(customer.CustomerId,request, TransactionType.LoanIssuance);
+                        transaction = CreateTransaction(customer.CustomerId,request, TransactionType.LoanIssuance,DateGenerated);
                         loan = CreateLoan(transaction.TransactionId, request);
                         ProcessInitialItems(request.Items, transaction.TransactionId, customer.CustomerId);
                         invoice = CreateInvoice(transaction.TransactionId, InvoiceType.InitialPawnInvoice, DateGenerated);
                         break;
 
                     case InvoiceType.InstallmentPaymentInvoice:
-                        transaction = CreateTransaction(customer.CustomerId, request, TransactionType.InstallmentPayment);
-                        installment = CreateInstallment(initialInvoiceNumber, transaction.TransactionId, installmentNumber);
+                        transaction = CreateTransaction(customer.CustomerId, request, TransactionType.InstallmentPayment, DateGenerated);
+                        installment = CreateInstallment(initialInvoiceNumber, transaction.TransactionId, installmentNumber,DateGenerated);
                         loan = UpdateInitialLoan(initialInvoiceNumber, transaction.TotalAmount);
                         invoice = CreateInvoice(transaction.TransactionId, InvoiceType.InstallmentPaymentInvoice, DateGenerated);
                         break;
 
                     case InvoiceType.SettlementInvoice:
-                        transaction = CreateTransaction(customer.CustomerId,request, TransactionType.LoanClosure);
+                        transaction = CreateTransaction(customer.CustomerId,request, TransactionType.LoanClosure, DateGenerated);
                         var isLoanSettled = SettleLoan(initialInvoiceNumber);
 
                         if (isLoanSettled)
@@ -122,7 +122,7 @@ namespace SMS.Business
             }
         }
 
-        private Transaction CreateTransaction(int customerId, CreateInvoiceDTO request, TransactionType transactionType)
+        private Transaction CreateTransaction(int customerId, CreateInvoiceDTO request, TransactionType transactionType,DateTime DateGenerated)
         {
             var transaction = new Transaction
             {
@@ -132,7 +132,7 @@ namespace SMS.Business
                 InterestAmount = request.InterestAmount,
                 TotalAmount = request.TotalAmount,
                 TransactionType = transactionType,
-                CreatedAt = DateTime.Now,
+                CreatedAt = DateGenerated,
                 UpdatedAt = DateTime.Now
             };
 
@@ -212,7 +212,7 @@ namespace SMS.Business
             _invoiceService.CreateInvoice(invoice);
             return invoice;
         }
-        private Installment CreateInstallment(string InitialInvoiceNumber, int transactionId, int installmentNumber)
+        private Installment CreateInstallment(string InitialInvoiceNumber, int transactionId, int installmentNumber,DateTime DateGenerated)
         {
             //var initialLoan = null;
             int loanId = 0;
@@ -241,7 +241,7 @@ namespace SMS.Business
                     InstallmentNumber = installmentNumber,
                     AmountPaid = transaction.TotalAmount,
                     DueDate = initialLoan.StartDate.AddMonths(installmentNumber),
-                    PaymentDate = DateTime.Now,
+                    PaymentDate = DateGenerated,
                 };
 
                 _installmentService.CreateInstallment(installment);
