@@ -59,6 +59,7 @@ namespace SMS.Business
                 Invoice invoice;
                 Loan loan;
                 Installment installment;
+                DateTime DateGenerated = request.Date;
            
 
                 switch (request.InvoiceTypeId)
@@ -68,14 +69,14 @@ namespace SMS.Business
                         transaction = CreateTransaction(customer.CustomerId,request, TransactionType.LoanIssuance);
                         loan = CreateLoan(transaction.TransactionId, request);
                         ProcessInitialItems(request.Items, transaction.TransactionId, customer.CustomerId);
-                        invoice = CreateInvoice(transaction.TransactionId, InvoiceType.InitialPawnInvoice);
+                        invoice = CreateInvoice(transaction.TransactionId, InvoiceType.InitialPawnInvoice, DateGenerated);
                         break;
 
                     case InvoiceType.InstallmentPaymentInvoice:
                         transaction = CreateTransaction(customer.CustomerId, request, TransactionType.InstallmentPayment);
                         installment = CreateInstallment(initialInvoiceNumber, transaction.TransactionId, installmentNumber);
                         loan = UpdateInitialLoan(initialInvoiceNumber, transaction.TotalAmount);
-                        invoice = CreateInvoice(transaction.TransactionId, InvoiceType.InstallmentPaymentInvoice);
+                        invoice = CreateInvoice(transaction.TransactionId, InvoiceType.InstallmentPaymentInvoice, DateGenerated);
                         break;
 
                     case InvoiceType.SettlementInvoice:
@@ -85,7 +86,7 @@ namespace SMS.Business
                         if (isLoanSettled)
                         {
                             ProcesSettlementItems(initialInvoiceNumber);
-                            invoice = CreateInvoice(transaction.TransactionId, InvoiceType.SettlementInvoice);
+                            invoice = CreateInvoice(transaction.TransactionId, InvoiceType.SettlementInvoice, DateGenerated);
                         }
 
                         break;
@@ -195,14 +196,14 @@ namespace SMS.Business
             }
         }
 
-        private Invoice CreateInvoice(int transactionId, InvoiceType invoiceType)
+        private Invoice CreateInvoice(int transactionId, InvoiceType invoiceType,DateTime DateGenerated)
         {
             var invoice = new Invoice
             {
                 InvoiceNo = _invoiceService.GenerateInvoiceNumber(),
                 InvoiceTypeId = invoiceType,
                 TransactionId = transactionId,
-                DateGenerated = DateTime.Now,
+                DateGenerated = DateGenerated,
                 Status = 1,
                 CreatedAt = DateTime.Now,
                 UpdatedAt = DateTime.Now
@@ -315,7 +316,7 @@ namespace SMS.Business
             }
             var lastInstallmentDate = installments?.Count > 0
                 ? installments.OrderByDescending(d => d.PaymentDate).FirstOrDefault()?.PaymentDate
-                : (DateTime?)null;
+                : initialInvoice.DateGenerated;
 
 
             var totalLoanDays = (initialLoan.EndDate.Date - initialLoan.StartDate.Date).Days;
@@ -333,7 +334,8 @@ namespace SMS.Business
                 TotalAmount = initialTransaction.TotalAmount,
                 LoanPeriod = initialLoan.LoanPeriod.Period,
                 DailyInterest = interestForOneDay,
-                LastInstallmentDate = new DateTime(2024, 4, 1, 0, 0, 0, DateTimeKind.Local),
+                LastInstallmentDate = lastInstallmentDate,
+                //new DateTime(2024, 4, 1, 0, 0, 0, DateTimeKind.Local),
                 // AccumulatedInterest = interestForInstallment,
                 IsLoanSettled = initialLoan.IsSettled,
               //  DaysSinceLastInstallment = (installments?.Count > 0 && installments.OrderByDescending(d => d.PaymentDate)
