@@ -150,6 +150,7 @@ namespace SMS.Business
                     {
                         ItemDescription = item.ItemDescription,
                         ItemCaratage = item.ItemCaratage,
+                        ItemWeight = item.ItemWeight,
                         ItemGoldWeight = item.ItemGoldWeight,
                         ItemValue = item.ItemValue,
                         Status = (int)ItemStatus.InStock,
@@ -399,6 +400,7 @@ namespace SMS.Business
                             ItemId = i.Item.ItemId,
                             ItemDescription = i.Item.ItemDescription,
                             ItemCaratage = i.Item.ItemCaratage,
+                            ItemWeight = i.Item.ItemWeight,
                             ItemGoldWeight = i.Item.ItemGoldWeight,
                             ItemValue = i.Item.ItemValue,
                             Status = i.Item.Status, // Assuming `Item` has a Status property
@@ -427,8 +429,13 @@ namespace SMS.Business
                     CustomerNIC = customer.CustomerNIC,
                     Loans = loanDtos.OrderByDescending(l=> l.StartDate).ToList() // Include the list of loans
                 };
+                if(report != null)
+                {
+                    return report;
 
-                return report;
+                }
+                return null;
+               
             }
             catch (Exception ex)
             {

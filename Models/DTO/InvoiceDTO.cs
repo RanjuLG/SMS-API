@@ -77,6 +77,7 @@
             public int itemId { get; set; }
             public string? ItemDescription { get; set; }
             public decimal? ItemCaratage { get; set; }
+            public decimal? ItemWeight { get; set; }
             public decimal? ItemGoldWeight { get; set; }
             public decimal? ItemValue { get; set; }
 
