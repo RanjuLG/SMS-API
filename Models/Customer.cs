@@ -22,6 +22,7 @@ namespace SMS.Models
         public DateTime? DeletedAt { get; set; }
 
         // Store NIC photo file path
+        public string? NICPhotoPath { get; set; }
 
         // Navigation Properties
         public virtual ICollection<Item> Items { get; set; }

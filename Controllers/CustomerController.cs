@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Castle.Core.Resource;
 using Microsoft.AspNetCore.Mvc;
 using SMS.Enums;
 using SMS.Generic;
@@ -93,7 +94,7 @@ namespace SMS.Controllers
 
         [HttpPost]
         [Route("")]
-        public ActionResult<CreateCustomerDTO> CreateCustomer([FromBody] CreateCustomerDTO request)
+        public ActionResult<CreateCustomerDTO> CreateCustomer([FromForm] CreateCustomerDTO request, IFormFile nicPhoto)
         {
             try
             {
@@ -104,6 +105,29 @@ namespace SMS.Controllers
                 }
 
                 var customer = _mapper.Map<Customer>(request);
+                if (nicPhoto != null && nicPhoto.Length > 0)
+                {
+                    // Ensure the uploads directory exists
+                    var directoryPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Uploads", "NICPhotos");
+                    if (!Directory.Exists(directoryPath))
+                    {
+                        Directory.CreateDirectory(directoryPath);
+                    }
+
+                    // Generate a unique filename to avoid conflicts
+                    var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(nicPhoto.FileName);
+                    var filePath = Path.Combine(directoryPath, uniqueFileName);
+
+                    // Save the file locally in wwwroot directory
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        nicPhoto.CopyTo(stream);
+                    }
+
+                    // Save the web-accessible file path in the customer record
+                    var publicUrl = $"/Uploads/NICPhotos/{uniqueFileName}";
+                    customer.NICPhotoPath = publicUrl;  // Store the URL, not the local path
+                }
 
                 _customerService.CreateCustomer(customer);
               //  var responseDTO = _mapper.Map<CreateCustomerDTO>(response);
@@ -141,6 +165,7 @@ namespace SMS.Controllers
                     CustomerId = customer.CustomerId,
                     CustomerContactNo = customer.CustomerContactNo,
                     CustomerNIC = customer.CustomerNIC,
+                    NICPhotoPath = customer.NICPhotoPath,
                     CreatedAt = DateTime.Now,
                 };
 
@@ -159,7 +184,7 @@ namespace SMS.Controllers
 
         [HttpPut]
         [Route("{customerId}/customer")]
-        public ActionResult UpdateCustomer(int customerId, [FromBody] CreateCustomerDTO request)
+        public ActionResult UpdateCustomer(int customerId, [FromForm] CreateCustomerDTO request, IFormFile nicPhoto)
         {
             try
             {
@@ -180,7 +205,29 @@ namespace SMS.Controllers
                 existingCustomer.CustomerName = request.CustomerName;
                 existingCustomer.CustomerAddress = request.CustomerAddress;
                 existingCustomer.CustomerContactNo = request.CustomerContactNo;
-              
+                if (nicPhoto != null && nicPhoto.Length > 0)
+                {
+                    // Ensure the uploads directory exists
+                    var directoryPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Uploads", "NICPhotos");
+                    if (!Directory.Exists(directoryPath))
+                    {
+                        Directory.CreateDirectory(directoryPath);
+                    }
+
+                    // Generate a unique filename to avoid conflicts
+                    var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(nicPhoto.FileName);
+                    var filePath = Path.Combine(directoryPath, uniqueFileName);
+
+                    // Save the file locally in wwwroot directory
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        nicPhoto.CopyTo(stream);
+                    }
+
+                    // Save the web-accessible file path in the customer record
+                    var publicUrl = $"/Uploads/NICPhotos/{uniqueFileName}";
+                    existingCustomer.NICPhotoPath = publicUrl;  // Store the URL, not the local path
+                }
                 _customerService.UpdateCustomer(existingCustomer);
                
                 return Ok();
