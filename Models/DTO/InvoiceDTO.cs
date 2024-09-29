@@ -77,6 +77,7 @@
             public int itemId { get; set; }
             public string? ItemDescription { get; set; }
             public decimal? ItemCaratage { get; set; }
+            public decimal? ItemWeight { get; set; }
             public decimal? ItemGoldWeight { get; set; }
             public decimal? ItemValue { get; set; }
 
@@ -108,15 +109,14 @@
             public decimal? PrincipleAmount { get; set; }
             public decimal? InterestRate { get; set; }
             public decimal? InterestAmount { get; set; }
-            public decimal? DailyInterestAmount { get; set; }
+         //   public decimal? AccumulatedInterest { get; set; }
+            public decimal? DailyInterest { get; set; }
             public decimal TotalAmount { get; set; }
             public int LoanPeriod { get; set; }
-            public int NumberOfInstallments { get; set; }
-            public decimal InstallmentValue { get; set; }
-            public int NumberOfInstallmentsPaid { get; set; }
-            public int NumberOfInstallmentsToBePaid { get; set; }
             public bool IsLoanSettled { get; set; }
-            public int DaysSinceLastInstallment { get; set; }
+
+            public DateTime? LastInstallmentDate { get; set; }
+          //  public int DaysSinceLastInstallment { get; set; }
         }
     }
 }

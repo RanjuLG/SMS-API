@@ -27,42 +27,49 @@ namespace SMS.Services
                                          .Include(t => t.Invoice)
                                          .Include(t => t.Installments)
                                          .ToList();
-
-            var transactionDTOs = transactions.Select(t => new TransactionReportDTO
+            if(transactions != null)
             {
-                TransactionId = t.TransactionId,
-                TransactionType = t.TransactionType,
-                CreatedAt = t.CreatedAt,
-                SubTotal = t.SubTotal,
-                InterestRate = t.InterestRate,
-                InterestAmount = t.InterestAmount,
-                TotalAmount = t.TotalAmount,
-                Customer = t.Customer != null ? new CustomerReportDTO
-                {
-                    CustomerNIC = t.Customer.CustomerNIC,
-                    CustomerName = t.Customer.CustomerName,
-                    CustomerAddress = t.Customer.CustomerAddress,
-                    CustomerContactNo = t.Customer.CustomerContactNo,
-                } : null,
-                Invoice = t.Invoice != null ? new InvoiceReportDTO
-                {
-                    InvoiceId = t.Invoice.InvoiceId,
-                    InvoiceTypeId = t.Invoice.InvoiceTypeId,
-                    InvoiceNo = t.Invoice.InvoiceNo,
-                    DateGenerated = t.Invoice.DateGenerated,
-                    Status = t.Invoice.Status
-                } : null,
-                Installments = t.Installments?.Select(i => new InstallmentReportDTO
-                {
-                    InstallmentId = i.InstallmentId,
-                    InstallmentNumber = i.InstallmentNumber,
-                    AmountPaid = i.AmountPaid,
-                    DueDate = i.DueDate,
-                    PaymentDate = i.PaymentDate
-                }).ToList()
-            }).OrderByDescending(a=> a.Invoice.DateGenerated).ToList();
 
-            return transactionDTOs;
+                var transactionDTOs = transactions.Select(t => new TransactionReportDTO
+                {
+                    TransactionId = t.TransactionId,
+                    TransactionType = t.TransactionType,
+                    CreatedAt = t.CreatedAt,
+                    SubTotal = t.SubTotal,
+                    InterestRate = t.InterestRate,
+                    InterestAmount = t.InterestAmount,
+                    TotalAmount = t.TotalAmount,
+                    Customer = t.Customer != null ? new CustomerReportDTO
+                    {
+                        CustomerNIC = t.Customer.CustomerNIC,
+                        CustomerName = t.Customer.CustomerName,
+                        CustomerAddress = t.Customer.CustomerAddress,
+                        CustomerContactNo = t.Customer.CustomerContactNo,
+                    } : null,
+                    Invoice = t.Invoice != null ? new InvoiceReportDTO
+                    {
+                        InvoiceId = t.Invoice.InvoiceId,
+                        InvoiceTypeId = t.Invoice.InvoiceTypeId,
+                        InvoiceNo = t.Invoice.InvoiceNo,
+                        DateGenerated = t.Invoice.DateGenerated,
+                        Status = t.Invoice.Status
+                    } : null,
+                    Installments = t.Installments?.Select(i => new InstallmentReportDTO
+                    {
+                        InstallmentId = i.InstallmentId,
+                        InstallmentNumber = i.InstallmentNumber,
+                        AmountPaid = i.AmountPaid,
+                        DueDate = i.DueDate,
+                        PaymentDate = i.PaymentDate
+                    }).ToList()
+                }).OrderByDescending(a => a.Invoice != null ? a.Invoice.DateGenerated : DateTime.MinValue)
+                 .ToList(); // Convert the result to List
+
+                return transactionDTOs;
+
+            }
+            return null;
+
         }
 
 

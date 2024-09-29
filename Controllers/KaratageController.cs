@@ -232,7 +232,7 @@ namespace SMS.Controllers
                     {
                         Period = pricingBatchDTO.Period
                     };
-                    _karatageService.CreateLoanPeriod(loanPeriod);
+                    _karatageService.CreateLoanPeriod(newLoanPeriod);
                     loanPeriod = _karatageService.GetAllLoanPeriods().FirstOrDefault(lp => lp.Period == pricingBatchDTO.Period);
                     if (loanPeriod == null)
                     {

@@ -110,7 +110,7 @@ namespace SMS.Controllers
 
                 // If the invoice creation was successful, return the created invoice details (or Ok if not fetching details)
                 // return Ok(createdInvoice); // Uncomment if fetching and returning details
-                return Ok();
+                return Ok(result);
             }
             catch (Exception ex)
             {
@@ -216,7 +216,7 @@ namespace SMS.Controllers
         }
 
         [HttpGet("InitialInvoice/{invoiceNumber}")]
-        public ActionResult<IEnumerable<LoanInfo>> GetInfoByInvoiceNumber(string invoiceNumber)
+        public ActionResult<LoanInfo> GetInfoByInvoiceNumber(string invoiceNumber)
         {
             try
             {
