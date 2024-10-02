@@ -102,6 +102,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("CorsPolicy");
 app.UseHttpsRedirection();
+app.UseStaticFiles(); // Make sure this is enabled
 app.UseRouting();
 app.UseAuthentication();  // Enable authentication middleware
 app.UseAuthorization();   // Enable authorization middleware
