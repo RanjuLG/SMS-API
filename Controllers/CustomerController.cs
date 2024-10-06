@@ -208,11 +208,15 @@ namespace SMS.Controllers
                 if (nicPhoto != null && nicPhoto.Length > 0)
                 {
                     // Ensure the uploads directory exists
+                    /*
                     var directoryPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Uploads", "NICPhotos");
                     if (!Directory.Exists(directoryPath))
                     {
                         Directory.CreateDirectory(directoryPath);
                     }
+                    */
+
+                    var directoryPath = "C:\\inetpub\\wwwroot\\SMS_GUI\\brower\\uploads\\nic";
 
                     // Generate a unique filename to avoid conflicts
                     var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(nicPhoto.FileName);
@@ -225,7 +229,7 @@ namespace SMS.Controllers
                     }
 
                     // Save the web-accessible file path in the customer record
-                    var publicUrl = $"/Uploads/NICPhotos/{uniqueFileName}";
+                    var publicUrl = $"/uploads/nic/{uniqueFileName}";
                     existingCustomer.NICPhotoPath = publicUrl;  // Store the URL, not the local path
                 }
                 _customerService.UpdateCustomer(existingCustomer);
