@@ -94,7 +94,7 @@ namespace SMS.Controllers
 
         [HttpPost]
         [Route("")]
-        public ActionResult<CreateCustomerDTO> CreateCustomer([FromForm] CreateCustomerDTO request, IFormFile nicPhoto)
+        public ActionResult<CreateCustomerDTO> CreateCustomer([FromForm] CreateCustomerDTO request, IFormFile? nicPhoto)
         {
             try
             {
@@ -184,7 +184,7 @@ namespace SMS.Controllers
 
         [HttpPut]
         [Route("{customerId}/customer")]
-        public ActionResult UpdateCustomer(int customerId, [FromForm] CreateCustomerDTO request, IFormFile nicPhoto)
+        public ActionResult UpdateCustomer(int customerId, [FromForm] CreateCustomerDTO request, IFormFile? nicPhoto)
         {
             try
             {
