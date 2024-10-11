@@ -8,6 +8,8 @@ using SMS.Migrations;
 using SMS.Generic;
 using Azure.Core;
 using SMS.Enums;
+using SMS.Repositories;
+using SMS.Services;
 
 namespace SMS.Business
 {
@@ -22,6 +24,8 @@ namespace SMS.Business
         private readonly IKaratageService _karatageService;
         private readonly IInstallmentService _installmentService;
         private readonly IMapper _mapper;
+        private readonly ILogger<InvoiceService> _logger;
+        private readonly IRepository _dbContext;
 
         public object StartDate { get; private set; }
 
@@ -34,7 +38,11 @@ namespace SMS.Business
             ILoanService loanService,
             IKaratageService karatageService,
             IInstallmentService installmentService,
-            IMapper mapper)
+            IMapper mapper,
+            ILogger<InvoiceService> logger,
+            IRepository dbContext
+
+            )
         {
             _customerService = customerService;
             _transactionService = transactionService;
@@ -45,66 +53,78 @@ namespace SMS.Business
             _karatageService = karatageService;
             _installmentService = installmentService;
             _mapper = mapper;
+            _logger = logger;
+            _dbContext = dbContext;
         }
 
-        public IActionResult ProcessInvoice(CreateInvoiceDTO request,string initialInvoiceNumber, int installmentNumber)
+        public IActionResult ProcessInvoice(CreateInvoiceDTO request, string initialInvoiceNumber, int installmentNumber)
         {
+            if (request == null || request.InvoiceTypeId == 0)
+            {
+                _logger.LogWarning("Invalid request data.");
+                return new BadRequestObjectResult("Invalid request data.");
+            }
+
             try
             {
+                _dbContext.CreateTransaction(); // Start a new transaction
+
                 // Step 1: Handle Customer
                 var customer = GetOrCreateCustomer(request.Customer);
 
                 // Step 2: Process Transaction and Invoice Based on Invoice Type
-                Transaction transaction;
-                Invoice invoice;
-                Loan loan;
-                Installment installment;
-                DateTime DateGenerated = request.Date;
-           
+                Transaction transaction = null;
+                Invoice invoice = null;
+                Loan loan = null;
+                Installment installment = null;
+                DateTime dateGenerated = request.Date;
 
                 switch (request.InvoiceTypeId)
                 {
                     case InvoiceType.InitialPawnInvoice:
-
-                        transaction = CreateTransaction(customer.CustomerId,request, TransactionType.LoanIssuance,DateGenerated);
+                        transaction = CreateTransaction(customer.CustomerId, request, TransactionType.LoanIssuance, dateGenerated);
                         loan = CreateLoan(transaction.TransactionId, request);
                         ProcessInitialItems(request.Items, transaction.TransactionId, customer.CustomerId);
-                        invoice = CreateInvoice(transaction.TransactionId, InvoiceType.InitialPawnInvoice, DateGenerated);
+                        invoice = CreateInvoice(transaction.TransactionId, InvoiceType.InitialPawnInvoice, dateGenerated);
                         break;
 
                     case InvoiceType.InstallmentPaymentInvoice:
-                        transaction = CreateTransaction(customer.CustomerId, request, TransactionType.InstallmentPayment, DateGenerated);
-                        installment = CreateInstallment(initialInvoiceNumber, transaction.TransactionId, installmentNumber,DateGenerated);
+                        transaction = CreateTransaction(customer.CustomerId, request, TransactionType.InstallmentPayment, dateGenerated);
+                        installment = CreateInstallment(initialInvoiceNumber, transaction.TransactionId, installmentNumber, dateGenerated);
                         loan = UpdateInitialLoan(initialInvoiceNumber, transaction.TotalAmount);
-                        invoice = CreateInvoice(transaction.TransactionId, InvoiceType.InstallmentPaymentInvoice, DateGenerated);
+                        invoice = CreateInvoice(transaction.TransactionId, InvoiceType.InstallmentPaymentInvoice, dateGenerated);
                         break;
 
                     case InvoiceType.SettlementInvoice:
-                        transaction = CreateTransaction(customer.CustomerId,request, TransactionType.LoanClosure, DateGenerated);
-                        var isLoanSettled = SettleLoan(initialInvoiceNumber);
+                        transaction = CreateTransaction(customer.CustomerId, request, TransactionType.LoanClosure, dateGenerated);
+                        bool isLoanSettled = SettleLoan(initialInvoiceNumber);
 
                         if (isLoanSettled)
                         {
                             ProcesSettlementItems(initialInvoiceNumber);
-                            invoice = CreateInvoice(transaction.TransactionId, InvoiceType.SettlementInvoice, DateGenerated);
+                            invoice = CreateInvoice(transaction.TransactionId, InvoiceType.SettlementInvoice, dateGenerated);
                         }
-
                         break;
 
                     default:
+                        _logger.LogWarning($"Unsupported Invoice Type: {request.InvoiceTypeId}");
                         return new BadRequestObjectResult("Invalid Invoice Type");
                 }
 
-                // Step 3: Return the Created Invoice ID
+                // Step 3: Commit the transaction and return the Created Invoice ID
+                _dbContext.CommitTransaction();
                 var createdInvoice = _invoiceService.GetLastInvoice();
+
                 return new OkObjectResult(createdInvoice.InvoiceId);
             }
             catch (Exception ex)
             {
-                // Log the exception here if needed
+                _dbContext.RollbackTransaction(); // Rollback in case of error
+                _logger.LogError(ex, "An error occurred while processing the invoice.");
                 return new StatusCodeResult(500);
             }
         }
+
 
         private Customer GetOrCreateCustomer(CreateCustomerDTO customerDto)
         {
