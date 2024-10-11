@@ -4,7 +4,10 @@
     {
         public int ItemId { get; set; }
         public string? ItemDescription { get; set; }
+        public string? ItemRemarks { get; set; }
+
         public decimal? ItemCaratage { get; set; }
+        public decimal? ItemWeight { get; set; }
         public decimal? ItemGoldWeight { get; set; }
         public decimal? ItemValue { get; set; }
         public int? Status { get; set; }
@@ -15,6 +18,8 @@
     {
         //public int ItemId { get; set; }
         public string? ItemDescription { get; set; }
+        public string? ItemRemarks { get; set; }
+        public decimal? ItemWeight { get; set; }
         public decimal? ItemCaratage { get; set; }
         public decimal? ItemGoldWeight { get; set; }
         public decimal? ItemValue { get; set; }
@@ -26,7 +31,9 @@
     {
         //public int ItemId { get; set; }
         public string? ItemDescription { get; set; }
+        public string? ItemRemarks { get; set; }
         public decimal? ItemCaratage { get; set; }
+        public decimal? ItemWeight { get; set; }
         public decimal? ItemGoldWeight { get; set; }
         public decimal? ItemValue { get; set; }
         public int? Status { get; set; }
@@ -36,7 +43,9 @@
     public class CommonItemDTO
     {
         public string? ItemDescription { get; set; }
+        public string? ItemRemarks { get; set; }
         public decimal? ItemCaratage { get; set; }
+        public decimal? ItemWeight { get; set; }
         public decimal? ItemGoldWeight { get; set; }
         public decimal? ItemValue { get; set; }
         public int? Status { get; set; }

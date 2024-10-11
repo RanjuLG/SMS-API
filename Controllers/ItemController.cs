@@ -35,7 +35,9 @@ namespace SMS.Controllers
                 {
                     ItemId = item.ItemId,
                     ItemDescription = item.ItemDescription,
+                    ItemRemarks = item.ItemRemarks,
                     ItemCaratage = item.ItemCaratage,
+                    ItemWeight = item.ItemWeight,
                     ItemGoldWeight = item.ItemGoldWeight,
                     ItemValue = item.ItemValue,
                     Status = item.Status,
@@ -71,7 +73,9 @@ namespace SMS.Controllers
                 {
                     ItemId = item.ItemId,
                     ItemDescription = item.ItemDescription,
+                    ItemRemarks = item.ItemRemarks,
                     ItemCaratage = item.ItemCaratage,
+                    ItemWeight = item.ItemWeight,
                     ItemGoldWeight = item.ItemGoldWeight,
                     ItemValue = item.ItemValue,
                     Status = item.Status,
@@ -105,7 +109,9 @@ namespace SMS.Controllers
                 var Item = new Item
                 {
                     ItemDescription = request.ItemDescription,
+                    ItemRemarks = request.ItemRemarks,
                     ItemCaratage = request.ItemCaratage,
+                    ItemWeight = request.ItemWeight,
                     ItemGoldWeight = request.ItemGoldWeight,
                     ItemValue = request.ItemValue,
                     Status = request.Status,
@@ -147,7 +153,9 @@ namespace SMS.Controllers
 
                 // Update properties
                 existingItem.ItemDescription = request.ItemDescription;
+                existingItem.ItemRemarks = request.ItemRemarks;
                 existingItem.ItemCaratage = request.ItemCaratage;
+                existingItem.ItemWeight = request.ItemWeight;
                 existingItem.ItemGoldWeight = request.ItemGoldWeight;
                 existingItem.ItemValue = request.ItemValue;
                 existingItem.Status = request.Status;
@@ -218,7 +226,9 @@ namespace SMS.Controllers
                 {
                     ItemId = item.ItemId,
                     ItemDescription = item.ItemDescription,
+                    ItemRemarks = item.ItemRemarks,
                     ItemCaratage = item.ItemCaratage,
+                    ItemWeight = item.ItemWeight,
                     ItemGoldWeight = item.ItemGoldWeight,
                     ItemValue = item.ItemValue,
                     Status = item.Status,

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SMS.DBContext;
 
@@ -11,9 +12,11 @@ using SMS.DBContext;
 namespace SMS.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241010182011_LoanDeletedAt")]
+    partial class LoanDeletedAt
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -335,7 +338,6 @@ namespace SMS.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<string>("InvoiceNo")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("InvoiceTypeId")
@@ -435,9 +437,6 @@ namespace SMS.Migrations
 
                     b.Property<decimal?>("ItemGoldWeight")
                         .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("ItemRemarks")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal?>("ItemValue")
                         .HasColumnType("decimal(18,2)");

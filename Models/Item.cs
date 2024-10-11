@@ -12,7 +12,9 @@ namespace SMS.Models
         [ForeignKey("Customer")]
         public int? CustomerId { get; set; }
         public string? ItemDescription { get; set; }
+        public string? ItemRemarks { get; set; }
         public decimal? ItemCaratage { get; set; }
+        public decimal? ItemWeight { get; set; }
         public decimal? ItemGoldWeight { get; set; }
         public decimal? ItemValue { get; set; }
         public int? Status { get; set; } = 1;

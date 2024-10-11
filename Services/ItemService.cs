@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data.Entity;
 using System.Linq;
+using Castle.Core.Resource;
 using SMS.Enums;
 using SMS.Interfaces;
 using SMS.Models;
@@ -75,5 +76,12 @@ namespace SMS.Services
             return _dbContext.Get<Item>(i => i.CustomerId == customerId && i.DeletedAt == null).ToList();
         }
 
+
+        public int? GetInventoryCount()
+        {
+
+            return _dbContext.Get<Item>(i => i.DeletedAt == null && (i.Status == 1 || i.Status == 3) ).Count();
+
+        }
     }
 }

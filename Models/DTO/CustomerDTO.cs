@@ -8,6 +8,7 @@
         public string? CustomerAddress { get; set; }
         public string? CustomerContactNo { get; set; }
         public DateTime? CreatedAt { get; set; }
+        public string? NICPhotoPath { get; set; }  // Add NIC Photo Path
 
     }
     public class CreateCustomerDTO
@@ -17,6 +18,7 @@
         public string? CustomerName { get; set; }
         public string? CustomerAddress { get; set; }
         public string? CustomerContactNo { get; set; }
+        public string? NICPhotoPath { get; set; }  // Add NIC Photo Path
 
 
     }
@@ -28,6 +30,7 @@
         public string? CustomerAddress { get; set; }
         public string? CustomerContactNo { get; set; }
         public DateTime? UpdatedAt { get; set; } = DateTime.Now;
+        public string? NICPhotoPath { get; set; }  // Add NIC Photo Path
     }
 
     public class CommonCustomerDTO
@@ -37,6 +40,7 @@
         public string? CustomerName { get; set; }
         public string? CustomerAddress { get; set; }
         public string? CustomerContactNo { get; set; }
+        public string? NICPhotoPath { get; set; }  // Add NIC Photo Path
     }
 
 

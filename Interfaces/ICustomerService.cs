@@ -14,6 +14,8 @@ namespace SMS.Interfaces
         void DeleteCustomer(int customerId);
         void DeleteCustomers(IEnumerable<int> customerIds);
         Customer? GetCustomerByNIC(string customerNIC);
-        
+        int? GetCustomerCount();
+
+
     }
 }

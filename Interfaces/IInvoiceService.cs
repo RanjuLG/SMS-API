@@ -18,6 +18,7 @@ namespace SMS.Interfaces
         public Invoice GetLastInvoice();
         IEnumerable<Invoice> GetInvoicesByCustomerId(int customerId);
         IEnumerable<Invoice> GetInvoiceByInvoiceNo(string invoiceNo);
+        int? GetInvoiceCount();
 
     }
 }

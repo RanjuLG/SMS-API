@@ -13,5 +13,7 @@ namespace SMS.Interfaces
         void DeleteItems(IEnumerable<int> itemIds);
         IEnumerable<Item> GetItemsByCustomerId(int customerId);
 
+        int? GetInventoryCount();
+
     }
 }

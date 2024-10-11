@@ -112,5 +112,35 @@ namespace SMS.Controllers
             }
         }
         */
+
+        [HttpGet]
+        [Route("overview")]
+        public ActionResult<Overview> GetOverview()
+        {
+            try
+            {
+
+                var report = _businessLogic.ProcessOverview();
+
+                    if (report != null)
+                    {
+                        return Ok(report);
+                    }
+                    else
+                    {
+                        return NotFound();
+                    }
+
+
+
+            }
+            catch (Exception ex)
+            {
+                // Log the exception
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+
     }
 }

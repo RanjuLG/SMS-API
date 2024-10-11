@@ -22,6 +22,12 @@ namespace SMS.Services
             return _dbContext.Get<TransactionItem>(t => t.DeletedAt == null).ToList();
         }
 
+        public IList<TransactionItem> GetTransactionItemsByTransactionId(int transactionId)
+        {
+
+            return _dbContext.Get<TransactionItem>(t => t.TransactionId == transactionId).ToList();
+        }
+
         public TransactionItem GetTransactionItemById(int transactionItemId)
         {
             return _dbContext.Get<TransactionItem>(t => t.TransactionItemId == transactionItemId && t.DeletedAt == null).FirstOrDefault();

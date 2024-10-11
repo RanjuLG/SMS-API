@@ -14,5 +14,6 @@ namespace SMS.Interfaces
         void CreateLoan(Loan loanDto);
         void UpdateLoan(Loan loanDto);
         void DeleteLoan(int loanId);
+        int? GetActiveLoanCount();
     }
 }
