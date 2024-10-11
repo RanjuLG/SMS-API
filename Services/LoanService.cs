@@ -5,6 +5,7 @@ using System.Linq;
 using Azure.Core;
 using SMS.Enums;
 using SMS.Interfaces;
+using SMS.Migrations;
 using SMS.Models;
 using SMS.Models.DTO;
 
@@ -21,7 +22,7 @@ namespace SMS.Services
 
         public Loan GetLoanById(int loanId)
         {
-            return _dbContext.Get<Loan>(l => l.LoanId == loanId)
+            return _dbContext.Get<Loan>(l => l.LoanId == loanId && l.DeletedAt == null)
                              .Include(l => l.Transaction)
                              .Include(l => l.Installments)
                              .FirstOrDefault();
@@ -98,6 +99,13 @@ namespace SMS.Services
                 _dbContext.Update<Loan>(loan);
                 _dbContext.Save();
             }
+        }
+
+
+        public int? GetActiveLoanCount()
+        {
+
+            return _dbContext.Get<Loan>(l => l.DeletedAt == null && !l.IsSettled).Count();
         }
     }
 }

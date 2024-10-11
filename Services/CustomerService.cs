@@ -81,5 +81,10 @@ namespace SMS.Services
                              .Include(c => c.Transactions)
                              .FirstOrDefault();
         }
+
+        public int? GetCustomerCount()
+        {
+            return _dbContext.Get<Customer>(c => c.DeletedAt == null).Count();
+        }
     }
 }

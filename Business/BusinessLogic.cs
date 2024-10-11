@@ -10,6 +10,7 @@ using Azure.Core;
 using SMS.Enums;
 using SMS.Repositories;
 using SMS.Services;
+using System.Data.Entity.Core.Common.CommandTrees.ExpressionBuilder;
 
 namespace SMS.Business
 {
@@ -645,7 +646,33 @@ namespace SMS.Business
             });
 
             return invoiceDTOs;
-        } 
+        }
+
+
+        public Overview ProcessOverview()
+        {
+            DateTime to = DateTime.Now.Date.AddDays(1).AddHours(0).AddMinutes(0).AddSeconds(0).AddMilliseconds(0);
+
+            var totalActiveLoans = _loanService.GetActiveLoanCount();
+            var invoiceCont = _invoiceService.GetInvoiceCount();
+            var customerCount = _customerService.GetCustomerCount();
+            var inventoryCount = _itemService.GetInventoryCount();
+            var revenueGenerated = _transactionService.GetRevenue();
+            var overview = new Overview
+            {
+                TotalActiveLoans = totalActiveLoans,
+                TotalInvoices = invoiceCont,
+                RevenueGenerated = revenueGenerated,
+                InventoryCount = inventoryCount,
+                CustomerCount = customerCount,
+
+
+
+            };
+
+            return overview;
+
+        }
 
 
     }

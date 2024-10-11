@@ -265,5 +265,13 @@ namespace SMS.Services
         {
             return _dbContext.Get<Invoice>(i => i.InvoiceNo.ToLower() == invoiceNo.ToLower() && i.DeletedAt == null).ToList();
         }
+
+
+        public int? GetInvoiceCount()
+        {
+
+
+            return _dbContext.Get<Invoice>(i =>  i.DeletedAt == null).Count();
+        }
     }
 }

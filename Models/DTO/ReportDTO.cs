@@ -67,11 +67,25 @@
 
     public class CustomerReportDTO
     {
-       
+
         public string CustomerNIC { get; set; }
         public string? CustomerName { get; set; }
         public string? CustomerAddress { get; set; }
         public string? CustomerContactNo { get; set; }
     }
 
+
+    public class Overview
+    {
+        public int? TotalActiveLoans { get; set; }
+
+        public int? TotalInvoices { get; set; }
+
+        public decimal? RevenueGenerated { get; set; }
+
+        public int? InventoryCount { get; set; }
+
+        public int? CustomerCount { get; set; }
+
+    }
 }

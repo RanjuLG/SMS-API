@@ -138,5 +138,17 @@ namespace SMS.Services
                                  .ThenInclude(ti => ti.Item)
                              .ToList();
         }
+
+
+        public decimal? GetRevenue()
+        {
+            decimal? revenue = 0;
+
+            var interestTransactions = _dbContext.Get<Transaction>(t => t.DeletedAt == null && t.TransactionType == TransactionType.InstallmentPayment).Select(r=> r.InterestAmount);
+            // Sum the InterestAmount values
+            revenue = interestTransactions.Sum();
+
+            return revenue;
+        }
     }
 }
