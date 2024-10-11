@@ -35,6 +35,7 @@ namespace SMS.Controllers
                 {
                     ItemId = item.ItemId,
                     ItemDescription = item.ItemDescription,
+                    ItemRemarks = item.ItemRemarks,
                     ItemCaratage = item.ItemCaratage,
                     ItemWeight = item.ItemWeight,
                     ItemGoldWeight = item.ItemGoldWeight,
@@ -72,6 +73,7 @@ namespace SMS.Controllers
                 {
                     ItemId = item.ItemId,
                     ItemDescription = item.ItemDescription,
+                    ItemRemarks = item.ItemRemarks,
                     ItemCaratage = item.ItemCaratage,
                     ItemWeight = item.ItemWeight,
                     ItemGoldWeight = item.ItemGoldWeight,
@@ -107,6 +109,7 @@ namespace SMS.Controllers
                 var Item = new Item
                 {
                     ItemDescription = request.ItemDescription,
+                    ItemRemarks = request.ItemRemarks,
                     ItemCaratage = request.ItemCaratage,
                     ItemWeight = request.ItemWeight,
                     ItemGoldWeight = request.ItemGoldWeight,
@@ -150,6 +153,7 @@ namespace SMS.Controllers
 
                 // Update properties
                 existingItem.ItemDescription = request.ItemDescription;
+                existingItem.ItemRemarks = request.ItemRemarks;
                 existingItem.ItemCaratage = request.ItemCaratage;
                 existingItem.ItemWeight = request.ItemWeight;
                 existingItem.ItemGoldWeight = request.ItemGoldWeight;
@@ -222,6 +226,7 @@ namespace SMS.Controllers
                 {
                     ItemId = item.ItemId,
                     ItemDescription = item.ItemDescription,
+                    ItemRemarks = item.ItemRemarks,
                     ItemCaratage = item.ItemCaratage,
                     ItemWeight = item.ItemWeight,
                     ItemGoldWeight = item.ItemGoldWeight,

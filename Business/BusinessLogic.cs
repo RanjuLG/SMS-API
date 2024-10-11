@@ -169,6 +169,7 @@ namespace SMS.Business
                     var newItem = new Item
                     {
                         ItemDescription = item.ItemDescription,
+                        ItemRemarks = item.ItemRemarks,
                         ItemCaratage = item.ItemCaratage,
                         ItemWeight = item.ItemWeight,
                         ItemGoldWeight = item.ItemGoldWeight,
@@ -419,6 +420,7 @@ namespace SMS.Business
                         {
                             ItemId = i.Item.ItemId,
                             ItemDescription = i.Item.ItemDescription,
+                            ItemRemarks = i.Item.ItemRemarks,
                             ItemCaratage = i.Item.ItemCaratage,
                             ItemWeight = i.Item.ItemWeight,
                             ItemGoldWeight = i.Item.ItemGoldWeight,
