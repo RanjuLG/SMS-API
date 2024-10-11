@@ -13,7 +13,7 @@ namespace SMS.Models
 
         [ForeignKey("Transaction")]
         public int TransactionId { get; set; }
-        public string? InvoiceNo { get; set; }
+        public string InvoiceNo { get; set; }
         public DateTime? DateGenerated { get; set; }
         public int? Status { get; set; }
         public long? CreatedBy { get; set; }

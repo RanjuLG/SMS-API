@@ -94,7 +94,8 @@ namespace SMS.Services
             var loan = _dbContext.GetById<Loan>(loanId);
             if (loan != null)
             {
-                _dbContext.Delete<Loan>(loan);
+                loan.DeletedAt = DateTime.Now;
+                _dbContext.Update<Loan>(loan);
                 _dbContext.Save();
             }
         }

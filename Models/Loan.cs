@@ -20,6 +20,8 @@ namespace SMS.Models
 
         public Boolean IsSettled { get; set; }
 
+        public DateTime? DeletedAt { get; set; }
+
         // Navigation Properties
         public virtual Transaction Transaction { get; set; }
         public virtual ICollection<Installment> Installments { get; set; }

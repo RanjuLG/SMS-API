@@ -108,11 +108,15 @@ namespace SMS.Controllers
                 if (nicPhoto != null && nicPhoto.Length > 0)
                 {
                     // Ensure the uploads directory exists
+                    /*
                     var directoryPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Uploads", "NICPhotos");
                     if (!Directory.Exists(directoryPath))
                     {
                         Directory.CreateDirectory(directoryPath);
                     }
+                    */
+
+                    var directoryPath = "C:\\inetpub\\wwwroot\\gold-ccash-gui\\brower\\uploads\\nic";
 
                     // Generate a unique filename to avoid conflicts
                     var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(nicPhoto.FileName);
@@ -216,7 +220,7 @@ namespace SMS.Controllers
                     }
                     */
 
-                    var directoryPath = "C:\\inetpub\\wwwroot\\SMS_GUI\\brower\\uploads\\nic";
+                    var directoryPath = "C:\\inetpub\\wwwroot\\gold-ccash-gui\\brower\\uploads\\nic";
 
                     // Generate a unique filename to avoid conflicts
                     var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(nicPhoto.FileName);
