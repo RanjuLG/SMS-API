@@ -45,6 +45,8 @@
         public InvoiceReportDTO Invoice { get; set; }
         public List<InstallmentReportDTO> Installments { get; set; }
         public CustomerReportDTO Customer { get; set; }
+
+        public LoanReportDTO Loan { get; set; }
     }
 
     public class InvoiceReportDTO
@@ -88,4 +90,16 @@
         public int? CustomerCount { get; set; }
 
     }
+
+    public class LoanReportDTO
+    {
+        public int LoanId { get; set; }
+        public int? LoanPeriodId { get; set; }
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public decimal AmountPaid { get; set; }
+        public decimal OutstandingAmount { get; set; }
+        public bool IsSettled { get; set; }
+    }
+
 }

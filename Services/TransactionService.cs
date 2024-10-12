@@ -24,53 +24,90 @@ namespace SMS.Services
             var endTime = dateTimeRange.To;
 
             var transactions = _dbContext.Get<Transaction>(i => i.DeletedAt == null && i.CreatedAt <= endTime && i.CreatedAt >= startTime)
-                                         .Include(t => t.Invoice)
-                                         .Include(t => t.Installments)
-                                         .ToList();
-            if(transactions != null)
+                                  .Include(t => t.Invoice)
+                                  .Include(t => t.Installments)
+                                  .ToList();
+
+            if (!transactions.Any())
             {
-
-                var transactionDTOs = transactions.Select(t => new TransactionReportDTO
-                {
-                    TransactionId = t.TransactionId,
-                    TransactionType = t.TransactionType,
-                    CreatedAt = t.CreatedAt,
-                    SubTotal = t.SubTotal,
-                    InterestRate = t.InterestRate,
-                    InterestAmount = t.InterestAmount,
-                    TotalAmount = t.TotalAmount,
-                    Customer = t.Customer != null ? new CustomerReportDTO
-                    {
-                        CustomerNIC = t.Customer.CustomerNIC,
-                        CustomerName = t.Customer.CustomerName,
-                        CustomerAddress = t.Customer.CustomerAddress,
-                        CustomerContactNo = t.Customer.CustomerContactNo,
-                    } : null,
-                    Invoice = t.Invoice != null ? new InvoiceReportDTO
-                    {
-                        InvoiceId = t.Invoice.InvoiceId,
-                        InvoiceTypeId = t.Invoice.InvoiceTypeId,
-                        InvoiceNo = t.Invoice.InvoiceNo,
-                        DateGenerated = t.Invoice.DateGenerated,
-                        Status = t.Invoice.Status
-                    } : null,
-                    Installments = t.Installments?.Select(i => new InstallmentReportDTO
-                    {
-                        InstallmentId = i.InstallmentId,
-                        InstallmentNumber = i.InstallmentNumber,
-                        AmountPaid = i.AmountPaid,
-                        DueDate = i.DueDate,
-                        PaymentDate = i.PaymentDate
-                    }).ToList()
-                }).OrderByDescending(a => a.Invoice != null ? a.Invoice.DateGenerated : DateTime.MinValue)
-                 .ToList(); // Convert the result to List
-
-                return transactionDTOs;
-
+                return new List<TransactionReportDTO>();
             }
-            return null;
 
+            var transactionDTOs = transactions.Select(MapToTransactionReportDTO)
+                                               .OrderByDescending(t => t.Invoice?.DateGenerated ?? DateTime.MinValue)
+                                               .ToList();
+
+            return transactionDTOs;
         }
+
+        private TransactionReportDTO MapToTransactionReportDTO(Transaction transaction)
+        {
+            return new TransactionReportDTO
+            {
+                TransactionId = transaction.TransactionId,
+                TransactionType = transaction.TransactionType,
+                CreatedAt = transaction.CreatedAt,
+                SubTotal = transaction.SubTotal,
+                InterestRate = transaction.InterestRate,
+                InterestAmount = transaction.InterestAmount,
+                TotalAmount = transaction.TotalAmount,
+                Customer = transaction.Customer != null ? MapToCustomerReportDTO(transaction.Customer) : null,
+                Invoice = transaction.Invoice != null ? MapToInvoiceReportDTO(transaction.Invoice) : null,
+                Installments = transaction.Installments?.Select(MapToInstallmentReportDTO).ToList(),
+                Loan = transaction.Loan != null ? MapToLoanReportDTO(transaction.Loan) : null // Map Loan entity
+            };
+        }
+
+        private LoanReportDTO MapToLoanReportDTO(Loan loan)
+        {
+            return new LoanReportDTO
+            {
+                LoanId = loan.LoanId,
+                LoanPeriodId = loan.LoanPeriodId,
+                StartDate = loan.StartDate,
+                EndDate = loan.EndDate,
+                AmountPaid = loan.AmountPaid,
+                OutstandingAmount = loan.OutstandingAmount,
+                IsSettled = loan.IsSettled
+            };
+        }
+
+        private CustomerReportDTO MapToCustomerReportDTO(Customer customer)
+        {
+            return new CustomerReportDTO
+            {
+                CustomerNIC = customer.CustomerNIC,
+                CustomerName = customer.CustomerName,
+                CustomerAddress = customer.CustomerAddress,
+                CustomerContactNo = customer.CustomerContactNo
+            };
+        }
+
+        private InvoiceReportDTO MapToInvoiceReportDTO(Invoice invoice)
+        {
+            return new InvoiceReportDTO
+            {
+                InvoiceId = invoice.InvoiceId,
+                InvoiceTypeId = invoice.InvoiceTypeId,
+                InvoiceNo = invoice.InvoiceNo,
+                DateGenerated = invoice.DateGenerated,
+                Status = invoice.Status
+            };
+        }
+
+        private InstallmentReportDTO MapToInstallmentReportDTO(Installment installment)
+        {
+            return new InstallmentReportDTO
+            {
+                InstallmentId = installment.InstallmentId,
+                InstallmentNumber = installment.InstallmentNumber,
+                AmountPaid = installment.AmountPaid,
+                DueDate = installment.DueDate,
+                PaymentDate = installment.PaymentDate
+            };
+        }
+
+
 
 
         public Transaction GetTransactionById(int transactionId)
