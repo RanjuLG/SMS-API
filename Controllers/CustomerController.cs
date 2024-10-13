@@ -17,11 +17,13 @@ namespace SMS.Controllers
     {
         private readonly ICustomerService _customerService;
         private readonly IMapper _mapper;
+        private readonly IConfiguration _configuration;
 
-        public CustomerController(ICustomerService customerService, IMapper mapper)
+        public CustomerController(ICustomerService customerService, IMapper mapper, IConfiguration configuration)
         {
             _customerService = customerService;
             _mapper = mapper;
+            _configuration = configuration;
         }
 
         [HttpGet]
@@ -116,7 +118,8 @@ namespace SMS.Controllers
                     }
                     */
 
-                    var directoryPath = "C:\\inetpub\\wwwroot\\gold-ccash-gui\\brower\\uploads\\nic";
+                    // Get the directory path from configuration
+                    var directoryPath = _configuration["FileSettings:NicUploadFolderPath"];
 
                     // Generate a unique filename to avoid conflicts
                     var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(nicPhoto.FileName);
@@ -128,8 +131,10 @@ namespace SMS.Controllers
                         nicPhoto.CopyTo(stream);
                     }
 
-                    // Save the web-accessible file path in the customer record
-                    var publicUrl = $"/Uploads/NICPhotos/{uniqueFileName}";
+                    // Construct the public URL by removing the path up to the "uploads" folder
+                    var uploadsFolderIndex = directoryPath.IndexOf("uploads", StringComparison.OrdinalIgnoreCase);
+                    var relativePath = directoryPath.Substring(uploadsFolderIndex).Replace("\\", "/");
+                    var publicUrl = $"/{relativePath}/{uniqueFileName}";
                     customer.NICPhotoPath = publicUrl;  // Store the URL, not the local path
                 }
 
@@ -220,7 +225,7 @@ namespace SMS.Controllers
                     }
                     */
 
-                    var directoryPath = "C:\\inetpub\\wwwroot\\gold-ccash-gui\\brower\\uploads\\nic";
+                    var directoryPath = _configuration["FileSettings:NicUploadFolderPath"];
 
                     // Generate a unique filename to avoid conflicts
                     var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(nicPhoto.FileName);
@@ -233,7 +238,9 @@ namespace SMS.Controllers
                     }
 
                     // Save the web-accessible file path in the customer record
-                    var publicUrl = $"/uploads/nic/{uniqueFileName}";
+                    var uploadsFolderIndex = directoryPath.IndexOf("uploads", StringComparison.OrdinalIgnoreCase);
+                    var relativePath = directoryPath.Substring(uploadsFolderIndex).Replace("\\", "/");
+                    var publicUrl = $"/{relativePath}/{uniqueFileName}";
                     existingCustomer.NICPhotoPath = publicUrl;  // Store the URL, not the local path
                 }
                 _customerService.UpdateCustomer(existingCustomer);
