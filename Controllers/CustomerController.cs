@@ -243,6 +243,11 @@ namespace SMS.Controllers
                     var publicUrl = $"/{relativePath}/{uniqueFileName}";
                     existingCustomer.NICPhotoPath = publicUrl;  // Store the URL, not the local path
                 }
+                else if (nicPhoto == null && nicPhoto.Length == 0)
+                {
+                    existingCustomer.NICPhotoPath = null;
+
+                }
                 _customerService.UpdateCustomer(existingCustomer);
                
                 return Ok();
