@@ -42,37 +42,85 @@ namespace SMS.Services
 
         public void CreateCustomer(Customer customer)
         {
-            _dbContext.Create<Customer>(customer);
-            _dbContext.Save();
+            using (var dbTransaction = _dbContext.CreateTransaction())
+            {
+                try
+                {
+                    _dbContext.Create<Customer>(customer);
+                    _dbContext.Save();
+                    _dbContext.CommitTransaction();
+                }
+                catch (Exception)
+                {
+                    _dbContext.RollbackTransaction();
+                    throw;
+                }
+            }
         }
 
         public void UpdateCustomer(Customer customer)
         {
-            customer.UpdatedAt = DateTime.Now;
-            _dbContext.Update<Customer>(customer);
-            _dbContext.Save();
+            using (var dbTransaction = _dbContext.CreateTransaction())
+            {
+                try
+                {
+                    customer.UpdatedAt = DateTime.Now;
+                    _dbContext.Update<Customer>(customer);
+                    _dbContext.Save();
+                    _dbContext.CommitTransaction();
+                }
+                catch (Exception)
+                {
+                    _dbContext.RollbackTransaction();
+                    throw;
+                }
+            }
         }
 
         public void DeleteCustomer(int customerId)
         {
-            var customer = _dbContext.GetById<Customer>(customerId);
-            if (customer != null)
+            using (var dbTransaction = _dbContext.CreateTransaction())
             {
-                customer.DeletedAt = DateTime.Now;
-                _dbContext.Update<Customer>(customer);
-                _dbContext.Save();
+                try
+                {
+                    var customer = _dbContext.GetById<Customer>(customerId);
+                    if (customer != null)
+                    {
+                        customer.DeletedAt = DateTime.Now;
+                        _dbContext.Update<Customer>(customer);
+                        _dbContext.Save();
+                    }
+                    _dbContext.CommitTransaction();
+                }
+                catch (Exception)
+                {
+                    _dbContext.RollbackTransaction();
+                    throw;
+                }
             }
         }
 
         public void DeleteCustomers(IEnumerable<int> customerIds)
         {
-            var customers = _dbContext.Get<Customer>(c => customerIds.Contains(c.CustomerId) && c.DeletedAt == null).ToList();
-            foreach (var customer in customers)
+            using (var dbTransaction = _dbContext.CreateTransaction())
             {
-                customer.DeletedAt = DateTime.Now;
-                _dbContext.Update<Customer>(customer);
+                try
+                {
+                    var customers = _dbContext.Get<Customer>(c => customerIds.Contains(c.CustomerId) && c.DeletedAt == null).ToList();
+                    foreach (var customer in customers)
+                    {
+                        customer.DeletedAt = DateTime.Now;
+                        _dbContext.Update<Customer>(customer);
+                    }
+                    _dbContext.Save();
+                    _dbContext.CommitTransaction();
+                }
+                catch (Exception)
+                {
+                    _dbContext.RollbackTransaction();
+                    throw;
+                }
             }
-            _dbContext.Save();
         }
 
         public Customer? GetCustomerByNIC(string customerNIC)

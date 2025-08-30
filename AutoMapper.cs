@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using SMS.Models;
 using SMS.Models.DTO;
+using System.Linq;
 
 namespace SMS
 {
@@ -31,6 +32,11 @@ namespace SMS
                 .ForMember(dest => dest.CustomerNIC, opt => opt.MapFrom(src => src.Customer.CustomerNIC))
                 .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.TransactionItems));
             CreateMap<CreateTransactionDTO, Transaction>();
+            
+            // TransactionDTO mapping for legacy support
+            CreateMap<Transaction, TransactionDTO>()
+                .ForMember(dest => dest.Customer, opt => opt.MapFrom(src => src.Customer))
+                .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.TransactionItems.Select(ti => ti.Item).ToList()));
 
             // TransactionItem mappings
             CreateMap<TransactionItem, TransactionItemDTO>()

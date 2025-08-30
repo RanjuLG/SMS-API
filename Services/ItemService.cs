@@ -38,37 +38,85 @@ namespace SMS.Services
 
         public void CreateItem(Item item)
         {
-            _dbContext.Create<Item>(item);
-            _dbContext.Save();
+            using (var dbTransaction = _dbContext.CreateTransaction())
+            {
+                try
+                {
+                    _dbContext.Create<Item>(item);
+                    _dbContext.Save();
+                    _dbContext.CommitTransaction();
+                }
+                catch (Exception)
+                {
+                    _dbContext.RollbackTransaction();
+                    throw;
+                }
+            }
         }
 
         public void UpdateItem(Item item)
         {
-            item.UpdatedAt = DateTime.Now;
-            _dbContext.Update<Item>(item);
-            _dbContext.Save();
+            using (var dbTransaction = _dbContext.CreateTransaction())
+            {
+                try
+                {
+                    item.UpdatedAt = DateTime.Now;
+                    _dbContext.Update<Item>(item);
+                    _dbContext.Save();
+                    _dbContext.CommitTransaction();
+                }
+                catch (Exception)
+                {
+                    _dbContext.RollbackTransaction();
+                    throw;
+                }
+            }
         }
 
         public void DeleteItem(int itemId)
         {
-            var item = _dbContext.GetById<Item>(itemId);
-            if (item != null)
+            using (var dbTransaction = _dbContext.CreateTransaction())
             {
-                item.DeletedAt = DateTime.Now;
-                _dbContext.Update<Item>(item);
-                _dbContext.Save();
+                try
+                {
+                    var item = _dbContext.GetById<Item>(itemId);
+                    if (item != null)
+                    {
+                        item.DeletedAt = DateTime.Now;
+                        _dbContext.Update<Item>(item);
+                        _dbContext.Save();
+                    }
+                    _dbContext.CommitTransaction();
+                }
+                catch (Exception)
+                {
+                    _dbContext.RollbackTransaction();
+                    throw;
+                }
             }
         }
 
         public void DeleteItems(IEnumerable<int> itemIds)
         {
-            var items = _dbContext.Get<Item>(i => itemIds.Contains(i.ItemId) && i.DeletedAt == null).ToList();
-            foreach (var item in items)
+            using (var dbTransaction = _dbContext.CreateTransaction())
             {
-                item.DeletedAt = DateTime.Now;
-                _dbContext.Update<Item>(item);
+                try
+                {
+                    var items = _dbContext.Get<Item>(i => itemIds.Contains(i.ItemId) && i.DeletedAt == null).ToList();
+                    foreach (var item in items)
+                    {
+                        item.DeletedAt = DateTime.Now;
+                        _dbContext.Update<Item>(item);
+                    }
+                    _dbContext.Save();
+                    _dbContext.CommitTransaction();
+                }
+                catch (Exception)
+                {
+                    _dbContext.RollbackTransaction();
+                    throw;
+                }
             }
-            _dbContext.Save();
         }
 
         public IEnumerable<Item> GetItemsByCustomerId(int customerId)

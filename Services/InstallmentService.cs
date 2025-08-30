@@ -39,37 +39,85 @@ namespace SMS.Services
 
         public void CreateInstallment(Installment installment)
         {
-            _dbContext.Create<Installment>(installment);
-            _dbContext.Save();
+            using (var dbTransaction = _dbContext.CreateTransaction())
+            {
+                try
+                {
+                    _dbContext.Create<Installment>(installment);
+                    _dbContext.Save();
+                    _dbContext.CommitTransaction();
+                }
+                catch (Exception)
+                {
+                    _dbContext.RollbackTransaction();
+                    throw;
+                }
+            }
         }
 
         public void UpdateInstallment(Installment installment)
         {
-            installment.UpdatedAt = DateTime.Now;
-            _dbContext.Update<Installment>(installment);
-            _dbContext.Save();
+            using (var dbTransaction = _dbContext.CreateTransaction())
+            {
+                try
+                {
+                    installment.UpdatedAt = DateTime.Now;
+                    _dbContext.Update<Installment>(installment);
+                    _dbContext.Save();
+                    _dbContext.CommitTransaction();
+                }
+                catch (Exception)
+                {
+                    _dbContext.RollbackTransaction();
+                    throw;
+                }
+            }
         }
 
         public void DeleteInstallment(int installmentId)
         {
-            var installment = _dbContext.GetById<Installment>(installmentId);
-            if (installment != null)
+            using (var dbTransaction = _dbContext.CreateTransaction())
             {
-                installment.DeletedAt = DateTime.Now;
-                _dbContext.Update<Installment>(installment);
-                _dbContext.Save();
+                try
+                {
+                    var installment = _dbContext.GetById<Installment>(installmentId);
+                    if (installment != null)
+                    {
+                        installment.DeletedAt = DateTime.Now;
+                        _dbContext.Update<Installment>(installment);
+                        _dbContext.Save();
+                    }
+                    _dbContext.CommitTransaction();
+                }
+                catch (Exception)
+                {
+                    _dbContext.RollbackTransaction();
+                    throw;
+                }
             }
         }
 
         public void DeleteInstallments(IEnumerable<int> installmentIds)
         {
-            var installments = _dbContext.Get<Installment>(i => installmentIds.Contains(i.InstallmentId) && i.DeletedAt == null).ToList();
-            foreach (var installment in installments)
+            using (var dbTransaction = _dbContext.CreateTransaction())
             {
-                installment.DeletedAt = DateTime.Now;
-                _dbContext.Update<Installment>(installment);
+                try
+                {
+                    var installments = _dbContext.Get<Installment>(i => installmentIds.Contains(i.InstallmentId) && i.DeletedAt == null).ToList();
+                    foreach (var installment in installments)
+                    {
+                        installment.DeletedAt = DateTime.Now;
+                        _dbContext.Update<Installment>(installment);
+                    }
+                    _dbContext.Save();
+                    _dbContext.CommitTransaction();
+                }
+                catch (Exception)
+                {
+                    _dbContext.RollbackTransaction();
+                    throw;
+                }
             }
-            _dbContext.Save();
         }
 
         public IList<Installment> GetInstallmentsByInitialInvoiceNumber(string invoiceNumber)

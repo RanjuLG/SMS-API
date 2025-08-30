@@ -71,33 +71,71 @@ namespace SMS.Services
 
         public void CreateLoan(Loan loanDto)
         {
-            
-            _dbContext.Create<Loan>(loanDto);
-            _dbContext.Save();
+            using (var dbTransaction = _dbContext.CreateTransaction())
+            {
+                try
+                {
+                    _dbContext.Create<Loan>(loanDto);
+                    _dbContext.Save();
+                    _dbContext.CommitTransaction();
+                }
+                catch (Exception)
+                {
+                    _dbContext.RollbackTransaction();
+                    throw;
+                }
+            }
         }
 
         public void UpdateLoan(Loan loanDto)
         {
-            var loan = _dbContext.GetById<Loan>(loanDto.LoanId);
-            if (loan != null)
+            using (var dbTransaction = _dbContext.CreateTransaction())
             {
-                loan.TransactionId = loanDto.TransactionId;
-                loan.StartDate = loanDto.StartDate;
-                loan.EndDate = loanDto.EndDate;
+                try
+                {
+                    var loan = _dbContext.GetById<Loan>(loanDto.LoanId);
+                    if (loan != null)
+                    {
+                        loan.TransactionId = loanDto.TransactionId;
+                        loan.StartDate = loanDto.StartDate;
+                        loan.EndDate = loanDto.EndDate;
+                        loan.AmountPaid = loanDto.AmountPaid;
+                        loan.OutstandingAmount = loanDto.OutstandingAmount;
+                        loan.IsSettled = loanDto.IsSettled;
 
-                _dbContext.Update<Loan>(loan);
-                _dbContext.Save();
+                        _dbContext.Update<Loan>(loan);
+                        _dbContext.Save();
+                    }
+                    _dbContext.CommitTransaction();
+                }
+                catch (Exception)
+                {
+                    _dbContext.RollbackTransaction();
+                    throw;
+                }
             }
         }
 
         public void DeleteLoan(int loanId)
         {
-            var loan = _dbContext.GetById<Loan>(loanId);
-            if (loan != null)
+            using (var dbTransaction = _dbContext.CreateTransaction())
             {
-                loan.DeletedAt = DateTime.Now;
-                _dbContext.Update<Loan>(loan);
-                _dbContext.Save();
+                try
+                {
+                    var loan = _dbContext.GetById<Loan>(loanId);
+                    if (loan != null)
+                    {
+                        loan.DeletedAt = DateTime.Now;
+                        _dbContext.Update<Loan>(loan);
+                        _dbContext.Save();
+                    }
+                    _dbContext.CommitTransaction();
+                }
+                catch (Exception)
+                {
+                    _dbContext.RollbackTransaction();
+                    throw;
+                }
             }
         }
 
