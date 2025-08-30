@@ -196,12 +196,33 @@ builder.Services.AddTransient<IHealthService, HealthService>();
 builder.Services.AddScoped<BusinessLogic>();
 builder.Services.AddTransient<IReadOnlyRepository, ReadOnlyRepository<ApplicationDbContext>>();
 
-// Register Background Services for Health Monitoring
-builder.Services.AddHostedService<SMS.Services.Background.DatabaseBackupService>();
-builder.Services.AddHostedService<SMS.Services.Background.HealthDataCollectionService>();
-builder.Services.AddHostedService<SMS.Services.Background.HealthAlertingService>();
-builder.Services.AddHostedService<SMS.Services.Background.LogCleanupService>();
-builder.Services.AddHostedService<SMS.Services.Background.CertificateMonitoringService>();
+// Register Background Services for Health Monitoring (Conditionally based on configuration)
+var healthConfig = builder.Configuration.GetSection("HealthMonitoring").Get<HealthMonitoringConfiguration>() ?? new HealthMonitoringConfiguration();
+
+if (healthConfig.BackgroundServices.EnableDatabaseBackup)
+{
+    builder.Services.AddHostedService<SMS.Services.Background.DatabaseBackupService>();
+}
+
+if (healthConfig.BackgroundServices.EnableHealthDataCollection)
+{
+    builder.Services.AddHostedService<SMS.Services.Background.HealthDataCollectionService>();
+}
+
+if (healthConfig.BackgroundServices.EnableHealthAlerting)
+{
+    builder.Services.AddHostedService<SMS.Services.Background.HealthAlertingService>();
+}
+
+if (healthConfig.BackgroundServices.EnableLogCleanup)
+{
+    builder.Services.AddHostedService<SMS.Services.Background.LogCleanupService>();
+}
+
+if (healthConfig.BackgroundServices.EnableCertificateMonitoring)
+{
+    builder.Services.AddHostedService<SMS.Services.Background.CertificateMonitoringService>();
+}
 
     var app = builder.Build();
 

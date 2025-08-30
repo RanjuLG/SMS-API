@@ -6,6 +6,7 @@ namespace SMS.Models.Configuration
         public Thresholds Thresholds { get; set; } = new();
         public string[] Services { get; set; } = Array.Empty<string>();
         public BackupSettings BackupSettings { get; set; } = new();
+        public BackgroundServicesConfiguration BackgroundServices { get; set; } = new();
     }
 
     public class CacheTimeouts
@@ -54,5 +55,14 @@ namespace SMS.Models.Configuration
         public int RetentionDays { get; set; } = 30;
         public string ScheduledTime { get; set; } = "02:00";
         public string Location { get; set; } = "local-storage";
+    }
+
+    public class BackgroundServicesConfiguration
+    {
+        public bool EnableDatabaseBackup { get; set; } = true;
+        public bool EnableHealthDataCollection { get; set; } = true;
+        public bool EnableHealthAlerting { get; set; } = true;
+        public bool EnableLogCleanup { get; set; } = true;
+        public bool EnableCertificateMonitoring { get; set; } = true;
     }
 }
