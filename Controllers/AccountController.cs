@@ -83,14 +83,15 @@ namespace SMS.Controllers
             {
                 var roles = await _userManager.GetRolesAsync(currentUser);
 
-                if (!roles.Contains("Admin"))
+                // Allow SuperAdmin and Admin to register users
+                if (!roles.Contains("SuperAdmin") && !roles.Contains("Admin"))
                 {
                     return Forbid("You are not authorized to register users.");
                 }
             }
             else
             {
-                return Unauthorized(new { message = "You must be logged in as an Admin to register new users." });
+                return Unauthorized(new { message = "You must be logged in as an Admin or SuperAdmin to register new users." });
             }
 
             // Proceed with user registration
@@ -110,7 +111,7 @@ namespace SMS.Controllers
         }
 
         [HttpGet("users")]
-        [Authorize]
+        [Authorize(Policy = "UserManagementPolicy")] // SuperAdmin and Admin can view users
         public async Task<ActionResult<PaginatedResponse<GetUserDTO>>> GetAllUsers([FromQuery] UserSearchRequest request)
         {
             try
@@ -172,7 +173,7 @@ namespace SMS.Controllers
         }
 
         [HttpPut("user/{userId}")]
-        [Authorize]
+        [Authorize(Policy = "UserManagementPolicy")] // SuperAdmin and Admin can update users
         public async Task<IActionResult> UpdateUser(string userId, [FromBody] UpdateUserDTO userDto)
         {
             var user = await _userManager.FindByIdAsync(userId);
@@ -205,7 +206,7 @@ namespace SMS.Controllers
         }
 
         [HttpDelete("users/delete-multiple")]
-        [Authorize]
+        [Authorize(Policy = "UserManagementPolicy")] // SuperAdmin and Admin can delete users
         public async Task<IActionResult> DeleteUsers([FromBody] List<string> userIds)
         {
             try
@@ -235,27 +236,40 @@ namespace SMS.Controllers
         private async Task<string> GenerateJwtToken(ApplicationUser user)
         {
             var roles = await _userManager.GetRolesAsync(user);
+            var now = DateTime.UtcNow;
+            var expires = now.AddHours(1);
+
+            // Debug: Log the JWT key info
+            var jwtKey = _configuration["Jwt:Key"];
+            Console.WriteLine($"JWT Key for token generation (first 10 chars): {jwtKey?.Substring(0, Math.Min(10, jwtKey?.Length ?? 0))}...");
+            Console.WriteLine($"JWT Issuer: {_configuration["Jwt:Issuer"]}");
+            Console.WriteLine($"JWT Audience: {_configuration["Jwt:Audience"]}");
+
             var claims = new[]
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.UserName ?? ""),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim(JwtRegisteredClaimNames.Iat, new DateTimeOffset(now).ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64),
                 new Claim(ClaimTypes.NameIdentifier, user.Id),
                 new Claim(ClaimTypes.Role, roles.FirstOrDefault() ?? "")
             };
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"] ?? ""));
+            var key = new SymmetricSecurityKey(Convert.FromBase64String(_configuration["Jwt:Key"] ?? "R2VuZXJpY0RlZmF1bHRTZWNyZXRLZXk="));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-            var expires = DateTime.Now.AddHours(1);
 
             var token = new JwtSecurityToken(
-                _configuration["Jwt:Issuer"],
-                _configuration["Jwt:Audience"],
-                claims,
+                issuer: _configuration["Jwt:Issuer"],
+                audience: _configuration["Jwt:Audience"],
+                claims: claims,
+                notBefore: now,
                 expires: expires,
                 signingCredentials: creds
             );
 
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
+            Console.WriteLine($"Generated JWT token length: {tokenString.Length}");
+            
+            return tokenString;
         }
     }
 }
