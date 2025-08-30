@@ -1,45 +1,107 @@
 ﻿using AutoMapper;
-using Castle.Core.Resource;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SMS.Enums;
-using SMS.Generic;
-using SMS.Interfaces;
 using SMS.Models;
 using SMS.Models.DTO;
-using System;
-using System.Collections.Generic;
+using SMS.Interfaces;
 
 namespace SMS.Controllers
 {
     [Route("api/customers")]
     [ApiController]
+    [Authorize]
     public class CustomerController : ControllerBase
     {
         private readonly ICustomerService _customerService;
         private readonly IMapper _mapper;
         private readonly IConfiguration _configuration;
+        private readonly IPaginationService _paginationService;
 
-        public CustomerController(ICustomerService customerService, IMapper mapper, IConfiguration configuration)
+        public CustomerController(
+            ICustomerService customerService, 
+            IMapper mapper, 
+            IConfiguration configuration,
+            IPaginationService paginationService)
         {
             _customerService = customerService;
             _mapper = mapper;
             _configuration = configuration;
+            _paginationService = paginationService;
         }
 
         [HttpGet]
         [Route("")]
-        public ActionResult<IEnumerable<GetCustomerDTO>> GetCustomers([FromQuery] DateTimeRange dataParams)
+        public ActionResult<PaginatedResponse<GetCustomerDTO>> GetCustomers([FromQuery] CustomerSearchRequest request)
         {
             try
             {
-                var customers = _customerService.GetAllCustomers(dataParams);
+                // For now, use the existing service method but we'll need to enhance it for pagination
+                var dateRange = new SMS.Generic.DateTimeRange 
+                { 
+                    From = request.From, 
+                    To = request.To 
+                };
+                
+                var customers = _customerService.GetAllCustomers(dateRange);
                 var customersDTO = _mapper.Map<IEnumerable<GetCustomerDTO>>(customers);
-                return Ok(customersDTO);
+                
+                // Apply search if provided
+                if (!string.IsNullOrEmpty(request.Search))
+                {
+                    customersDTO = customersDTO.Where(c => 
+                        (c.CustomerName != null && c.CustomerName.Contains(request.Search, StringComparison.OrdinalIgnoreCase)) ||
+                        c.CustomerNIC.Contains(request.Search, StringComparison.OrdinalIgnoreCase) ||
+                        (c.CustomerAddress != null && c.CustomerAddress.Contains(request.Search, StringComparison.OrdinalIgnoreCase)) ||
+                        (c.CustomerContactNo != null && c.CustomerContactNo.Contains(request.Search, StringComparison.OrdinalIgnoreCase))
+                    );
+                }
+
+                // Apply NIC filter if provided
+                if (!string.IsNullOrEmpty(request.CustomerNIC))
+                {
+                    customersDTO = customersDTO.Where(c => c.CustomerNIC.Contains(request.CustomerNIC, StringComparison.OrdinalIgnoreCase));
+                }
+
+                // Apply sorting
+                if (!string.IsNullOrEmpty(request.SortBy))
+                {
+                    customersDTO = request.SortBy.ToLower() switch
+                    {
+                        "customername" => request.SortOrder?.ToLower() == "desc" 
+                            ? customersDTO.OrderByDescending(c => c.CustomerName) 
+                            : customersDTO.OrderBy(c => c.CustomerName),
+                        "customernic" => request.SortOrder?.ToLower() == "desc" 
+                            ? customersDTO.OrderByDescending(c => c.CustomerNIC) 
+                            : customersDTO.OrderBy(c => c.CustomerNIC),
+                        "createdat" => request.SortOrder?.ToLower() == "desc" 
+                            ? customersDTO.OrderByDescending(c => c.CreatedAt) 
+                            : customersDTO.OrderBy(c => c.CreatedAt),
+                        _ => customersDTO.OrderBy(c => c.CustomerName)
+                    };
+                }
+
+                // Apply pagination manually (until we enhance the service layer)
+                var totalItems = customersDTO.Count();
+                var pagedCustomers = customersDTO
+                    .Skip((request.Page - 1) * request.PageSize)
+                    .Take(request.PageSize)
+                    .ToList();
+
+                var pagination = _paginationService.CreatePaginationMetadata(request.Page, request.PageSize, totalItems);
+                var filters = _paginationService.CreateFilterMetadata(request, new { request.CustomerNIC });
+
+                var response = new PaginatedResponse<GetCustomerDTO>
+                {
+                    Data = pagedCustomers,
+                    Pagination = pagination,
+                    Filters = filters
+                };
+
+                return Ok(response);
             }
             catch (Exception ex)
             {
-                // Log the exception (you can use a logging framework for this)
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new { message = "Internal server error", details = ex.Message });
             }
         }
 
@@ -60,8 +122,7 @@ namespace SMS.Controllers
             }
             catch (Exception ex)
             {
-                // Log the exception (you can use a logging framework for this)
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new { message = "Internal server error", details = ex.Message });
             }
         }
 
@@ -87,16 +148,13 @@ namespace SMS.Controllers
             }
             catch (Exception ex)
             {
-                // Log the exception (you can use a logging framework for this)
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new { message = "Internal server error", details = ex.Message });
             }
         }
 
-
-
         [HttpPost]
         [Route("")]
-        public ActionResult<CreateCustomerDTO> CreateCustomer([FromForm] CreateCustomerDTO request, IFormFile? nicPhoto)
+        public ActionResult CreateCustomer([FromForm] CreateCustomerDTO request, IFormFile? nicPhoto)
         {
             try
             {
@@ -109,50 +167,38 @@ namespace SMS.Controllers
                 var customer = _mapper.Map<Customer>(request);
                 if (nicPhoto != null && nicPhoto.Length > 0)
                 {
-                    // Ensure the uploads directory exists
-                    /*
-                    var directoryPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Uploads", "NICPhotos");
-                    if (!Directory.Exists(directoryPath))
-                    {
-                        Directory.CreateDirectory(directoryPath);
-                    }
-                    */
-
-                    // Get the directory path from configuration
                     var directoryPath = _configuration["FileSettings:NicUploadFolderPath"];
+                    if (string.IsNullOrEmpty(directoryPath))
+                    {
+                        return StatusCode(500, new { message = "Upload directory not configured" });
+                    }
 
-                    // Generate a unique filename to avoid conflicts
                     var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(nicPhoto.FileName);
                     var filePath = Path.Combine(directoryPath, uniqueFileName);
 
-                    // Save the file locally in wwwroot directory
                     using (var stream = new FileStream(filePath, FileMode.Create))
                     {
                         nicPhoto.CopyTo(stream);
                     }
 
-                    // Construct the public URL by removing the path up to the "uploads" folder
                     var uploadsFolderIndex = directoryPath.IndexOf("uploads", StringComparison.OrdinalIgnoreCase);
                     var relativePath = directoryPath.Substring(uploadsFolderIndex).Replace("\\", "/");
                     var publicUrl = $"/{relativePath}/{uniqueFileName}";
-                    customer.NICPhotoPath = publicUrl;  // Store the URL, not the local path
+                    customer.NICPhotoPath = publicUrl;
                 }
 
                 _customerService.CreateCustomer(customer);
-              //  var responseDTO = _mapper.Map<CreateCustomerDTO>(response);
-
-                return Ok();
+                return Ok(new { message = "Customer created successfully" });
             }
             catch (Exception ex)
             {
-                // Log the exception (you can use a logging framework for this)
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new { message = "Internal server error", details = ex.Message });
             }
         }
 
         [HttpPost]
         [Route("byNIC")]
-        public ActionResult<IEnumerable<GetCustomerDTO>> GetCustomersByNIC([FromBody] string customerNIC)
+        public ActionResult<GetCustomerDTO> GetCustomerByNIC([FromBody] string customerNIC)
         {
             try
             {
@@ -164,98 +210,71 @@ namespace SMS.Controllers
                 var customer = _customerService.GetCustomerByNIC(customerNIC);
                 if (customer == null)
                 {
-                    return NotFound("Customer doesnot exist");
+                    return NotFound("Customer does not exist");
                 }
 
-                var customerDto = new GetCustomerDTO()
-                {
-                    CustomerName = customer.CustomerName,
-                    CustomerAddress = customer.CustomerAddress,
-                    CustomerId = customer.CustomerId,
-                    CustomerContactNo = customer.CustomerContactNo,
-                    CustomerNIC = customer.CustomerNIC,
-                    NICPhotoPath = customer.NICPhotoPath,
-                    CreatedAt = DateTime.Now,
-                };
-
-               // var customerDTOs = _mapper.Map<IEnumerable<GetCustomerDTO>>(customer);
-
-                
+                var customerDto = _mapper.Map<GetCustomerDTO>(customer);
                 return Ok(customerDto);
             }
             catch (Exception ex)
             {
-                // Log the exception (you can use a logging framework for this)
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new { message = "Internal server error", details = ex.Message });
             }
         }
 
-
         [HttpPut]
         [Route("{customerId}/customer")]
-        public ActionResult UpdateCustomer(int customerId, [FromForm] CreateCustomerDTO request, IFormFile? nicPhoto)
+        public ActionResult UpdateCustomer(int customerId, [FromForm] UpdateCustomerDTO request, IFormFile? nicPhoto)
         {
             try
             {
                 var existingCustomer = _customerService.GetCustomerById(customerId);
                 if (existingCustomer == null)
                 {
-                    return NotFound("Customer doesnot exist");
+                    return NotFound("Customer does not exist");
                 }
 
                 var isNewNicExists = _customerService.GetCustomerByNIC(request.CustomerNIC);
-
                 if (isNewNicExists != null && request.CustomerNIC != existingCustomer.CustomerNIC)
                 {
-                    return BadRequest("Customer already exists!");
+                    return BadRequest("Customer with this NIC already exists!");
                 }
+
                 // Update properties
                 existingCustomer.CustomerNIC = request.CustomerNIC;
                 existingCustomer.CustomerName = request.CustomerName;
                 existingCustomer.CustomerAddress = request.CustomerAddress;
                 existingCustomer.CustomerContactNo = request.CustomerContactNo;
+                existingCustomer.UpdatedAt = DateTime.Now;
+
                 if (nicPhoto != null && nicPhoto.Length > 0)
                 {
-                    // Ensure the uploads directory exists
-                    /*
-                    var directoryPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Uploads", "NICPhotos");
-                    if (!Directory.Exists(directoryPath))
-                    {
-                        Directory.CreateDirectory(directoryPath);
-                    }
-                    */
-
                     var directoryPath = _configuration["FileSettings:NicUploadFolderPath"];
+                    if (string.IsNullOrEmpty(directoryPath))
+                    {
+                        return StatusCode(500, new { message = "Upload directory not configured" });
+                    }
 
-                    // Generate a unique filename to avoid conflicts
                     var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(nicPhoto.FileName);
                     var filePath = Path.Combine(directoryPath, uniqueFileName);
 
-                    // Save the file locally in wwwroot directory
                     using (var stream = new FileStream(filePath, FileMode.Create))
                     {
                         nicPhoto.CopyTo(stream);
                     }
 
-                    // Save the web-accessible file path in the customer record
                     var uploadsFolderIndex = directoryPath.IndexOf("uploads", StringComparison.OrdinalIgnoreCase);
                     var relativePath = directoryPath.Substring(uploadsFolderIndex).Replace("\\", "/");
                     var publicUrl = $"/{relativePath}/{uniqueFileName}";
-                    existingCustomer.NICPhotoPath = publicUrl;  // Store the URL, not the local path
+                    existingCustomer.NICPhotoPath = publicUrl;
                 }
-                else if (nicPhoto == null && nicPhoto.Length == 0)
-                {
-                    existingCustomer.NICPhotoPath = null;
 
-                }
                 _customerService.UpdateCustomer(existingCustomer);
-               
-                return Ok();
+                return Ok(new { message = "Customer updated successfully" });
             }
             catch (Exception ex)
             {
-                // Log the exception (you can use a logging framework for this)
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new { message = "Internal server error", details = ex.Message });
             }
         }
 
@@ -272,28 +291,31 @@ namespace SMS.Controllers
                 }
 
                 _customerService.DeleteCustomer(customerId);
-
-                return Ok();
+                return Ok(new { message = "Customer deleted successfully" });
             }
             catch (Exception ex)
             {
-                // Log the exception (you can use a logging framework for this)
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new { message = "Internal server error", details = ex.Message });
             }
         }
 
         [HttpDelete("delete-multiple")]
         public IActionResult DeleteMultipleCustomers([FromBody] List<int> customerIds)
         {
-            if (customerIds == null || customerIds.Count == 0)
+            try
             {
-                return BadRequest("No customer IDs provided.");
+                if (customerIds == null || customerIds.Count == 0)
+                {
+                    return BadRequest("No customer IDs provided.");
+                }
+
+                _customerService.DeleteCustomers(customerIds);
+                return Ok(new { message = "Customers deleted successfully" });
             }
-
-            _customerService.DeleteCustomers(customerIds);
-
-            return Ok();
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Internal server error", details = ex.Message });
+            }
         }
-
     }
 }

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using SMS.Models;
 using SMS.Models.DTO;
+using SMS.Interfaces;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -11,27 +12,49 @@ using System.Text;
 namespace SMS.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/account")]
     public class AccountController : ControllerBase
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly IConfiguration _configuration;
+        private readonly IPaginationService _paginationService;
 
-        public AccountController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IConfiguration configuration)
+        public AccountController(
+            UserManager<ApplicationUser> userManager, 
+            SignInManager<ApplicationUser> signInManager, 
+            IConfiguration configuration,
+            IPaginationService paginationService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _configuration = configuration;
+            _paginationService = paginationService;
+        }
+
+        [HttpPost("login")]
+        [AllowAnonymous]
+        public async Task<IActionResult> Login([FromBody] LoginRequest model)
+        {
+            var user = await _userManager.FindByNameAsync(model.Username);
+            if (user != null && await _userManager.CheckPasswordAsync(user, model.Password))
+            {
+                var token = await GenerateJwtToken(user);
+                var expiration = DateTime.Now.AddHours(1);
+                
+                return Ok(new LoginResponse { Token = token, Expiration = expiration });
+            }
+
+            return Unauthorized(new { message = "Invalid username or password" });
         }
 
         [HttpPost("register")]
-        [AllowAnonymous] // Allow anonymous access for registration
-        public async Task<IActionResult> Register([FromBody] UserModel model, string token)
+        [AllowAnonymous]
+        public async Task<IActionResult> Register([FromBody] RegisterRequest model, [FromQuery] string token)
         {
             if (string.IsNullOrEmpty(token))
             {
-                return Unauthorized("Token is missing.");
+                return Unauthorized(new { message = "Token is missing." });
             }
 
             // Parse the token to get the user ID
@@ -40,7 +63,7 @@ namespace SMS.Controllers
 
             if (jwtToken == null)
             {
-                return Unauthorized("Invalid token.");
+                return Unauthorized(new { message = "Invalid token." });
             }
 
             // Extract the user ID from the token claims
@@ -48,7 +71,7 @@ namespace SMS.Controllers
 
             if (userIdClaim == null)
             {
-                return Unauthorized("Token does not contain a valid user ID.");
+                return Unauthorized(new { message = "Token does not contain a valid user ID." });
             }
 
             var userId = userIdClaim.Value;
@@ -67,7 +90,7 @@ namespace SMS.Controllers
             }
             else
             {
-                return Unauthorized("You must be logged in as an Admin to register new users.");
+                return Unauthorized(new { message = "You must be logged in as an Admin to register new users." });
             }
 
             // Proceed with user registration
@@ -76,25 +99,137 @@ namespace SMS.Controllers
 
             if (result.Succeeded)
             {
-                await _userManager.AddToRoleAsync(user, model.Roles[0]);
+                if (model.Roles.Any())
+                {
+                    await _userManager.AddToRoleAsync(user, model.Roles[0]);
+                }
                 return Ok(new { message = "User created successfully" });
             }
 
-            return BadRequest(result.Errors);
+            return BadRequest(new { message = "Failed to create user", errors = result.Errors });
         }
 
-
-        [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] LoginModel model)
+        [HttpGet("users")]
+        [Authorize]
+        public async Task<ActionResult<PaginatedResponse<GetUserDTO>>> GetAllUsers([FromQuery] UserSearchRequest request)
         {
-            var user = await _userManager.FindByNameAsync(model.Username);
-            if (user != null && await _userManager.CheckPasswordAsync(user, model.Password))
+            try
             {
-                var token = await GenerateJwtToken(user);
-                return Ok(new { token });
-            }
+                var usersQuery = _userManager.Users.AsQueryable();
 
-            return Unauthorized();
+                // Apply search
+                if (!string.IsNullOrEmpty(request.Search))
+                {
+                    usersQuery = usersQuery.Where(u => 
+                        (u.UserName != null && u.UserName.Contains(request.Search)) ||
+                        (u.Email != null && u.Email.Contains(request.Search))
+                    );
+                }
+
+                var users = usersQuery
+                    .Skip((request.Page - 1) * request.PageSize)
+                    .Take(request.PageSize)
+                    .ToList();
+
+                var totalUsers = usersQuery.Count();
+
+                var userDTOs = new List<GetUserDTO>();
+                foreach (var user in users)
+                {
+                    var roles = await _userManager.GetRolesAsync(user);
+                    
+                    // Apply role filter if specified
+                    if (!string.IsNullOrEmpty(request.Role) && !roles.Contains(request.Role))
+                    {
+                        continue;
+                    }
+
+                    userDTOs.Add(new GetUserDTO
+                    {
+                        Id = user.Id,
+                        UserName = user.UserName ?? "",
+                        Email = user.Email ?? "",
+                        Roles = roles.ToList()
+                    });
+                }
+
+                var pagination = _paginationService.CreatePaginationMetadata(request.Page, request.PageSize, totalUsers);
+                var filters = _paginationService.CreateFilterMetadata(request, new { request.Role });
+
+                var response = new PaginatedResponse<GetUserDTO>
+                {
+                    Data = userDTOs,
+                    Pagination = pagination,
+                    Filters = filters
+                };
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Internal server error", details = ex.Message });
+            }
+        }
+
+        [HttpPut("user/{userId}")]
+        [Authorize]
+        public async Task<IActionResult> UpdateUser(string userId, [FromBody] UpdateUserDTO userDto)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+
+            if (user == null)
+                return NotFound(new { message = "User not found" });
+
+            // Update user's name and email
+            user.UserName = userDto.Username;
+            user.Email = userDto.Email;
+
+            var updateResult = await _userManager.UpdateAsync(user);
+            if (!updateResult.Succeeded)
+                return BadRequest(new { message = "Failed to update user", errors = updateResult.Errors });
+
+            // Update user's roles
+            var currentRoles = await _userManager.GetRolesAsync(user);
+            var rolesToAdd = userDto.Roles.Except(currentRoles);
+            var rolesToRemove = currentRoles.Except(userDto.Roles);
+
+            var addRoleResult = await _userManager.AddToRolesAsync(user, rolesToAdd);
+            if (!addRoleResult.Succeeded)
+                return BadRequest(new { message = "Failed to add roles", errors = addRoleResult.Errors });
+
+            var removeRoleResult = await _userManager.RemoveFromRolesAsync(user, rolesToRemove);
+            if (!removeRoleResult.Succeeded)
+                return BadRequest(new { message = "Failed to remove roles", errors = removeRoleResult.Errors });
+
+            return Ok(new { message = "User updated successfully" });
+        }
+
+        [HttpDelete("users/delete-multiple")]
+        [Authorize]
+        public async Task<IActionResult> DeleteUsers([FromBody] List<string> userIds)
+        {
+            try
+            {
+                var deletedCount = 0;
+                foreach (var userId in userIds)
+                {
+                    var user = await _userManager.FindByIdAsync(userId);
+                    if (user != null)
+                    {
+                        var result = await _userManager.DeleteAsync(user);
+                        if (result.Succeeded)
+                        {
+                            deletedCount++;
+                        }
+                    }
+                }
+
+                return Ok(new { message = $"Successfully deleted {deletedCount} users" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Internal server error", details = ex.Message });
+            }
         }
 
         private async Task<string> GenerateJwtToken(ApplicationUser user)
@@ -102,13 +237,13 @@ namespace SMS.Controllers
             var roles = await _userManager.GetRolesAsync(user);
             var claims = new[]
             {
-                new Claim(JwtRegisteredClaimNames.Sub, user.UserName),
+                new Claim(JwtRegisteredClaimNames.Sub, user.UserName ?? ""),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 new Claim(ClaimTypes.NameIdentifier, user.Id),
-                new Claim(ClaimTypes.Role, roles.FirstOrDefault())
+                new Claim(ClaimTypes.Role, roles.FirstOrDefault() ?? "")
             };
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"] ?? ""));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
             var expires = DateTime.Now.AddHours(1);
 
@@ -119,95 +254,8 @@ namespace SMS.Controllers
                 expires: expires,
                 signingCredentials: creds
             );
-            string finalToken = new JwtSecurityTokenHandler().WriteToken(token);
 
-            return finalToken;
-        }
-
-        [HttpGet("users")]
-         // Ensure only authenticated users can access this method
-        public async Task<IActionResult> GetAllUsers()
-        {
-            var users = _userManager.Users.ToList();
-
-            var userDetailsList = new List<object>();
-
-            foreach (var user in users)
-            {
-                var roles = await _userManager.GetRolesAsync(user);
-                userDetailsList.Add(new
-                {
-                    user.Id,
-                    user.UserName,
-                    user.Email,
-                    Roles = roles
-                });
-            }
-
-            return Ok(userDetailsList);
-        }
-
-        [HttpPut("user/{userId}")]
-        public async Task<IActionResult> UpdateUser(string userId, [FromBody] UserDTO userDto)
-        {
-            var user = await _userManager.FindByIdAsync(userId);
-
-            if (user == null)
-                return NotFound("User not found");
-
-            // Update user's name and email
-            user.UserName = userDto.Username;
-            user.Email = userDto.Email;
-
-            var updateResult = await _userManager.UpdateAsync(user);
-            if (!updateResult.Succeeded)
-                return BadRequest(updateResult.Errors);
-
-            // Update user's roles
-            var currentRoles = await _userManager.GetRolesAsync(user);
-            var rolesToAdd = new List<string> { userDto.Roles[0] }.Except(currentRoles);
-            var rolesToRemove = currentRoles.Except(new List<string> { userDto.Roles[0] });
-
-            var addRoleResult = await _userManager.AddToRolesAsync(user, rolesToAdd);
-            if (!addRoleResult.Succeeded)
-                return BadRequest(addRoleResult.Errors);
-
-            var removeRoleResult = await _userManager.RemoveFromRolesAsync(user, rolesToRemove);
-            if (!removeRoleResult.Succeeded)
-                return BadRequest(removeRoleResult.Errors);
-
-            return Ok(new { message = "User updated successfully" });
-        }
-
-        [HttpDelete("users/delete-multiple")]
-        public async Task<IActionResult> DeleteUser([FromBody] List<string> userIds)
-        {
-            foreach(var userId in userIds)
-            {
-
-                var user = await _userManager.FindByIdAsync(userId);
-                if (user == null)
-                {
-                    continue;
-                }
-
-                var result = await _userManager.DeleteAsync(user);
-
-
-                if (result.Succeeded)
-                {
-                    continue;
-                }
-                else
-                {
-
-                    //log
-                }
-
-            }
-
-            return Ok(new { message = "Users deleted successfully" });
-
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
     }
 }

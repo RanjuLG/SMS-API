@@ -1,7 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using SMS.Interfaces;
-using SMS.Models.DTO.SMS.Models.DTO;
 using SMS.Models.DTO;
 using SMS.Models;
 using SMS.Migrations;
@@ -80,7 +79,7 @@ namespace SMS.Business
                 Installment installment = null;
                 DateTime dateGenerated = request.Date;
 
-                switch (request.InvoiceTypeId)
+                switch ((InvoiceType)request.InvoiceTypeId)
                 {
                     case InvoiceType.InitialPawnInvoice:
                         transaction = CreateTransaction(customer.CustomerId, request, TransactionType.LoanIssuance, dateGenerated);
@@ -352,10 +351,10 @@ namespace SMS.Business
             var loanInfo = new LoanInfo
             {
                 PrincipleAmount = initialTransaction.SubTotal,
-                InterestRate = initialTransaction.InterestRate,
+                InterestRate = initialTransaction.InterestRate ?? 0,
                 InterestAmount = totalInterestAmount,
                 TotalAmount = initialTransaction.TotalAmount,
-                LoanPeriod = initialLoan.LoanPeriod.Period,
+                LoanPeriod = initialLoan.LoanPeriod?.Period ?? 0,
                 DailyInterest = interestForOneDay,
                 LastInstallmentDate = lastInstallmentDate,
                 //new DateTime(2024, 4, 1, 0, 0, 0, DateTimeKind.Local),
@@ -624,14 +623,13 @@ namespace SMS.Business
 
         public IEnumerable<GetInvoiceDTO> GetInvoicesByCustomer(Customer customer)
         {
-            var invoices = _invoiceService.GetInvoicesByCustomerId(customer.CustomerId);
-
-            var initialLoan = _loanService.GetLoansByCustomerId(customer.CustomerId);
+            var invoices = _invoiceService.GetInvoicesByCustomerId(customer.CustomerId).ToList();
+            var initialLoan = _loanService.GetLoansByCustomerId(customer.CustomerId).ToList();
 
             var invoiceDTOs = invoices.Select(invoice => new GetInvoiceDTO
             {
                 InvoiceId = invoice.InvoiceId,
-                InvoiceTypeId = invoice.InvoiceTypeId,
+                InvoiceTypeId = (int)invoice.InvoiceTypeId,
                 InvoiceNo = invoice.InvoiceNo,
                 TransactionId = invoice.TransactionId,
                 CustomerNIC = customer.CustomerNIC,
@@ -641,8 +639,9 @@ namespace SMS.Business
                 TotalAmount = invoice.Transaction.TotalAmount,
                 DateGenerated = invoice.DateGenerated,
                 Status = invoice.Status,
-                LoanPeriod = invoice.InvoiceTypeId==InvoiceType.InitialPawnInvoice ?  initialLoan.Where(t => t.TransactionId == invoice.TransactionId).FirstOrDefault()?.LoanPeriod.Period: null,
-
+                LoanPeriod = invoice.InvoiceTypeId == InvoiceType.InitialPawnInvoice ? 
+                    initialLoan.Where(t => t.TransactionId == invoice.TransactionId)
+                              .FirstOrDefault()?.LoanPeriod?.Period : null,
             });
 
             return invoiceDTOs;

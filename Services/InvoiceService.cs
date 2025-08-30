@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using SMS.Enums;
 using SMS.Interfaces;
 using SMS.Models;
-using SMS.Models.DTO.SMS.Models.DTO;
+using SMS.Models.DTO;
 using SMS.Repositories;
 
 namespace SMS.Services
@@ -63,14 +63,14 @@ namespace SMS.Services
                 var invoice = new GetInvoiceDTO
                 {
                     InvoiceId = invoice_.InvoiceId,
-                    InvoiceTypeId = invoice_.InvoiceTypeId,
+                    InvoiceTypeId = (int)invoice_.InvoiceTypeId,
                     InvoiceNo = invoice_.InvoiceNo,
                     TransactionId = transaction.TransactionId,
                     CustomerNIC = transaction.Customer?.CustomerNIC,
                     TotalAmount = transaction.TotalAmount,
                     DateGenerated = invoice_.DateGenerated,
                     Status = invoice_.Status,
-                   LoanPeriod = invoice_.InvoiceTypeId == InvoiceType.InitialPawnInvoice ? loans.Where(t => t.TransactionId == invoice_.TransactionId).FirstOrDefault()?.LoanPeriod.Period : null,
+                   LoanPeriod = (int)invoice_.InvoiceTypeId == (int)InvoiceType.InitialPawnInvoice ? loans.Where(t => t.TransactionId == invoice_.TransactionId).FirstOrDefault()?.LoanPeriod?.Period : null,
                 };
 
                 invoices.Add(invoice);
@@ -91,11 +91,11 @@ namespace SMS.Services
             var invoice = new GetInvoiceDTO
             {
                 InvoiceId = invoice_.InvoiceId,
-                InvoiceTypeId = invoice_.InvoiceTypeId,
+                InvoiceTypeId = (int)invoice_.InvoiceTypeId,
                 InvoiceNo = invoice_.InvoiceNo,
-                TransactionId = transaction?.TransactionId,
+                TransactionId = transaction?.TransactionId ?? 0,
                 CustomerNIC = transaction?.Customer?.CustomerNIC,
-                TotalAmount = transaction?.TotalAmount,
+                TotalAmount = transaction?.TotalAmount ?? 0,
                 DateGenerated = invoice_.DateGenerated,
                 Status = invoice_.Status,
                //LoanPeriod = transaction.LoanPeriod?.Period // Map LoanPeriod

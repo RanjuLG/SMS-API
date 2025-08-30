@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using SMS.Generic;
 using SMS.Interfaces;
 using SMS.Models;
-using SMS.Models.DTO.SMS.Models.DTO;
 using SMS.Models.DTO;
 
 namespace SMS.Services
@@ -45,7 +44,7 @@ namespace SMS.Services
             return new TransactionReportDTO
             {
                 TransactionId = transaction.TransactionId,
-                TransactionType = transaction.TransactionType,
+                TransactionType = (int)transaction.TransactionType,
                 CreatedAt = transaction.CreatedAt,
                 SubTotal = transaction.SubTotal,
                 InterestRate = transaction.InterestRate,
@@ -88,7 +87,7 @@ namespace SMS.Services
             return new InvoiceReportDTO
             {
                 InvoiceId = invoice.InvoiceId,
-                InvoiceTypeId = invoice.InvoiceTypeId,
+                InvoiceTypeId = (int)invoice.InvoiceTypeId,
                 InvoiceNo = invoice.InvoiceNo,
                 DateGenerated = invoice.DateGenerated,
                 Status = invoice.Status
