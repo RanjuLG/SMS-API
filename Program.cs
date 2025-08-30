@@ -10,19 +10,36 @@ using SMS.Repositories;
 using SMS.Services;
 using System.Text;
 using static SMS.DBContext.ApplicationDbContext;
+using Serilog;
 
-var builder = WebApplication.CreateBuilder(args);
+// Configure Serilog early
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(new ConfigurationBuilder()
+        .SetBasePath(Directory.GetCurrentDirectory())
+        .AddJsonFile("appsettings.json")
+        .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json", optional: true)
+        .Build())
+    .CreateLogger();
 
-// Add services to the container.
-builder.Services.AddControllers();
-builder.Services.AddCors(options =>
+try
 {
-    options.AddPolicy("CorsPolicy",
-       builder => builder
-       .AllowAnyOrigin()
-       .AllowAnyMethod()
-       .AllowAnyHeader());
-});
+    Log.Information("Starting SMS API application");
+
+    var builder = WebApplication.CreateBuilder(args);
+
+    // Configure Serilog
+    builder.Host.UseSerilog();
+
+    // Add services to the container.
+    builder.Services.AddControllers();
+    builder.Services.AddCors(options =>
+    {
+        options.AddPolicy("CorsPolicy",
+           builder => builder
+           .AllowAnyOrigin()
+           .AllowAnyMethod()
+           .AllowAnyHeader());
+    });
 
 
 // Configure Swagger
@@ -101,34 +118,34 @@ builder.Services.AddAuthentication(options =>
         OnMessageReceived = context =>
         {
             var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
-            Console.WriteLine($"JWT OnMessageReceived - Authorization Header: {authHeader?.Substring(0, Math.Min(50, authHeader?.Length ?? 0))}...");
+            Log.Debug("JWT OnMessageReceived - Authorization Header: {AuthHeader}", authHeader?.Substring(0, Math.Min(50, authHeader?.Length ?? 0)) + "...");
             if (!string.IsNullOrEmpty(context.Token))
             {
-                Console.WriteLine($"JWT OnMessageReceived - Token extracted, length: {context.Token.Length}");
+                Log.Debug("JWT OnMessageReceived - Token extracted, length: {TokenLength}", context.Token.Length);
             }
             return Task.CompletedTask;
         },
         OnAuthenticationFailed = context =>
         {
-            Console.WriteLine($"JWT Authentication failed: {context.Exception.Message}");
-            Console.WriteLine($"JWT Authentication failed - Exception Type: {context.Exception.GetType().Name}");
+            Log.Error("JWT Authentication failed: {ErrorMessage}", context.Exception.Message);
+            Log.Error("JWT Authentication failed - Exception Type: {ExceptionType}", context.Exception.GetType().Name);
             if (context.Exception.InnerException != null)
             {
-                Console.WriteLine($"JWT Authentication failed - Inner Exception: {context.Exception.InnerException.Message}");
+                Log.Error("JWT Authentication failed - Inner Exception: {InnerException}", context.Exception.InnerException.Message);
             }
             return Task.CompletedTask;
         },
         OnTokenValidated = context =>
         {
-            Console.WriteLine("JWT Token validated successfully");
+            Log.Information("JWT Token validated successfully");
             var claims = context.Principal?.Claims?.Select(c => $"{c.Type}: {c.Value}") ?? new string[0];
-            Console.WriteLine($"JWT Claims: {string.Join(", ", claims)}");
+            Log.Debug("JWT Claims: {Claims}", string.Join(", ", claims));
             return Task.CompletedTask;
         },
         OnChallenge = context =>
         {
-            Console.WriteLine($"JWT Challenge: {context.Error}, {context.ErrorDescription}");
-            Console.WriteLine($"JWT Challenge - Auth Result: {context.AuthenticateFailure?.Message}");
+            Log.Warning("JWT Challenge: {Error}, {ErrorDescription}", context.Error, context.ErrorDescription);
+            Log.Warning("JWT Challenge - Auth Result: {AuthFailure}", context.AuthenticateFailure?.Message);
             return Task.CompletedTask;
         }
     };
@@ -170,39 +187,50 @@ builder.Services.AddTransient<IPaginationService, PaginationService>();
 builder.Services.AddScoped<BusinessLogic>();
 builder.Services.AddTransient<IReadOnlyRepository, ReadOnlyRepository<ApplicationDbContext>>();
 
-var app = builder.Build();
+    var app = builder.Build();
 
-// Seed roles and admin user
-using (var scope = app.Services.CreateScope())
-{
-    var services = scope.ServiceProvider;
-    var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
-    await SeedData.Initialize(services, userManager);
+    // Seed roles and admin user
+    using (var scope = app.Services.CreateScope())
+    {
+        var services = scope.ServiceProvider;
+        var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+        await SeedData.Initialize(services, userManager);
+    }
+
+    // Configure the HTTP request pipeline.
+    if (app.Environment.IsDevelopment())
+    {
+        app.UseSwagger();
+        app.UseSwaggerUI();
+        app.UseDeveloperExceptionPage();
+    }
+
+    app.UseCors("CorsPolicy");
+    app.UseHttpsRedirection();
+    app.UseStaticFiles(); // Make sure this is enabled
+    app.UseRouting();
+    app.UseAuthentication();  // Enable authentication middleware
+    app.UseAuthorization();   // Enable authorization middleware
+
+    app.MapControllers();
+
+    Log.Information("SMS API application started successfully");
+    app.Run();
 }
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+catch (Exception ex)
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-    app.UseDeveloperExceptionPage();
+    Log.Fatal(ex, "SMS API application terminated unexpectedly");
 }
-
-app.UseCors("CorsPolicy");
-app.UseHttpsRedirection();
-app.UseStaticFiles(); // Make sure this is enabled
-app.UseRouting();
-app.UseAuthentication();  // Enable authentication middleware
-app.UseAuthorization();   // Enable authorization middleware
-
-app.MapControllers();
-
-app.Run();
+finally
+{
+    Log.CloseAndFlush();
+}
 
 public class SeedData
 {
     public static async Task Initialize(IServiceProvider serviceProvider, UserManager<ApplicationUser> userManager)
     {
+        var logger = serviceProvider.GetRequiredService<ILogger<SeedData>>();
         var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
 
         // Define all roles in the system
@@ -212,6 +240,7 @@ public class SeedData
             if (!await roleManager.RoleExistsAsync(roleName))
             {
                 await roleManager.CreateAsync(new IdentityRole(roleName));
+                logger.LogInformation("Created role: {RoleName}", roleName);
             }
         }
 
@@ -232,10 +261,13 @@ public class SeedData
             if (createSuperAdmin.Succeeded)
             {
                 await userManager.AddToRoleAsync(superAdmin, "SuperAdmin");
-                Console.WriteLine("Super Admin user created successfully!");
-                Console.WriteLine($"Username: {superAdmin.UserName}");
-                Console.WriteLine($"Email: {superAdmin.Email}");
-                Console.WriteLine($"Password: {superAdminPassword}");
+                logger.LogInformation("Super Admin user created successfully with username: {Username} and email: {Email}", 
+                    superAdmin.UserName, superAdmin.Email);
+            }
+            else
+            {
+                logger.LogError("Failed to create Super Admin user: {Errors}", 
+                    string.Join(", ", createSuperAdmin.Errors.Select(e => e.Description)));
             }
         }
 
@@ -255,7 +287,12 @@ public class SeedData
             if (createAdmin.Succeeded)
             {
                 await userManager.AddToRoleAsync(admin, "Admin");
-                Console.WriteLine("Default Admin user created successfully!");
+                logger.LogInformation("Default Admin user created successfully");
+            }
+            else
+            {
+                logger.LogError("Failed to create Admin user: {Errors}", 
+                    string.Join(", ", createAdmin.Errors.Select(e => e.Description)));
             }
         }
         else
@@ -265,7 +302,7 @@ public class SeedData
             if (!currentRoles.Contains("SuperAdmin"))
             {
                 await userManager.AddToRoleAsync(adminUser, "SuperAdmin");
-                Console.WriteLine("Existing admin user upgraded to SuperAdmin!");
+                logger.LogInformation("Existing admin user upgraded to SuperAdmin");
             }
         }
 
@@ -285,7 +322,12 @@ public class SeedData
             if (createCashier.Succeeded)
             {
                 await userManager.AddToRoleAsync(cashier, "Cashier");
-                Console.WriteLine("Default Cashier user created successfully!");
+                logger.LogInformation("Default Cashier user created successfully");
+            }
+            else
+            {
+                logger.LogError("Failed to create Cashier user: {Errors}", 
+                    string.Join(", ", createCashier.Errors.Select(e => e.Description)));
             }
         }
     }
