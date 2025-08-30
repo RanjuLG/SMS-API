@@ -29,6 +29,11 @@ namespace SMS.DBContext
         public DbSet<Loan> Loans { get; set; }
         public DbSet<LoanPeriod> LoanPeriods { get; set; }
 
+        // Health monitoring entities
+        public DbSet<SystemHealthLog> SystemHealthLogs { get; set; }
+        public DbSet<BackupHistory> BackupHistory { get; set; }
+        public DbSet<ServiceHealthStatus> ServiceHealthStatus { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -157,6 +162,27 @@ namespace SMS.DBContext
             modelBuilder.Entity<TransactionItem>()
                 .Property(ti => ti.PawnValue)
                 .HasColumnType("decimal(18,2)");
+
+            // Health monitoring entities configuration
+            modelBuilder.Entity<SystemHealthLog>()
+                .HasIndex(e => e.Timestamp)
+                .HasDatabaseName("IX_SystemHealthLogs_Timestamp");
+
+            modelBuilder.Entity<SystemHealthLog>()
+                .HasIndex(e => e.ComponentName)
+                .HasDatabaseName("IX_SystemHealthLogs_Component");
+
+            modelBuilder.Entity<BackupHistory>()
+                .HasIndex(e => e.StartTime)
+                .HasDatabaseName("IX_BackupHistory_StartTime");
+
+            modelBuilder.Entity<ServiceHealthStatus>()
+                .HasIndex(e => e.ServiceName)
+                .HasDatabaseName("IX_ServiceHealthStatus_Service");
+
+            modelBuilder.Entity<ServiceHealthStatus>()
+                .HasIndex(e => e.LastChecked)
+                .HasDatabaseName("IX_ServiceHealthStatus_Checked");
 
             base.OnModelCreating(modelBuilder);
 

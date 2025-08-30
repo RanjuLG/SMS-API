@@ -6,6 +6,7 @@ using SMS.Business;
 using SMS.DBContext;
 using SMS.Interfaces;
 using SMS.Models;
+using SMS.Models.Configuration;
 using SMS.Repositories;
 using SMS.Services;
 using System.Text;
@@ -173,6 +174,13 @@ builder.Services.AddAuthorization(options =>
 // Add AutoMapper
 builder.Services.AddAutoMapper(typeof(Program).Assembly);
 
+// Add Memory Cache for health monitoring
+builder.Services.AddMemoryCache();
+
+// Configure health monitoring settings
+builder.Services.Configure<HealthMonitoringConfiguration>(
+    builder.Configuration.GetSection("HealthMonitoring"));
+
 // Register application services and repositories
 builder.Services.AddTransient<IRepository, Repository<ApplicationDbContext>>();
 builder.Services.AddTransient<ICustomerService, CustomerService>();
@@ -184,8 +192,16 @@ builder.Services.AddTransient<IKaratageService, KaratageService>();
 builder.Services.AddTransient<IInstallmentService, InstallmentService>();
 builder.Services.AddTransient<ILoanService, LoanService>();
 builder.Services.AddTransient<IPaginationService, PaginationService>();
+builder.Services.AddTransient<IHealthService, HealthService>();
 builder.Services.AddScoped<BusinessLogic>();
 builder.Services.AddTransient<IReadOnlyRepository, ReadOnlyRepository<ApplicationDbContext>>();
+
+// Register Background Services for Health Monitoring
+builder.Services.AddHostedService<SMS.Services.Background.DatabaseBackupService>();
+builder.Services.AddHostedService<SMS.Services.Background.HealthDataCollectionService>();
+builder.Services.AddHostedService<SMS.Services.Background.HealthAlertingService>();
+builder.Services.AddHostedService<SMS.Services.Background.LogCleanupService>();
+builder.Services.AddHostedService<SMS.Services.Background.CertificateMonitoringService>();
 
     var app = builder.Build();
 

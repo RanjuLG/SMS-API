@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SMS.DBContext;
 
@@ -11,9 +12,11 @@ using SMS.DBContext;
 namespace SMS.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250830210301_HealthMonitoring")]
+    partial class HealthMonitoring
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -654,37 +657,11 @@ namespace SMS.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<double?>("CpuUsagePercentage")
-                        .HasColumnType("float");
-
-                    b.Property<double?>("DatabaseResponseTime")
-                        .HasColumnType("float");
-
-                    b.Property<string>("DatabaseStatus")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<double?>("DatabaseStoragePercentage")
-                        .HasColumnType("float");
-
-                    b.Property<double?>("FilesStoragePercentage")
-                        .HasColumnType("float");
-
-                    b.Property<double?>("LogsStoragePercentage")
-                        .HasColumnType("float");
-
-                    b.Property<double?>("MemoryUsagePercentage")
-                        .HasColumnType("float");
-
                     b.Property<string>("Metrics")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("SystemStatus")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
