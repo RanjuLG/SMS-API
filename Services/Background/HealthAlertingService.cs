@@ -199,7 +199,7 @@ namespace SMS.Services.Background
             // Check if we've sent this alert recently (cooldown)
             if (_lastAlertTimes.TryGetValue(alertKey, out var lastAlert))
             {
-                if (DateTime.UtcNow - lastAlert < _alertCooldown)
+                if (DateTime.Now - lastAlert < _alertCooldown)
                 {
                     return; // Skip - too soon to send same alert again
                 }
@@ -228,7 +228,7 @@ namespace SMS.Services.Background
                 await SendConsoleAlertAsync(alert);
 
                 // Update last alert time
-                _lastAlertTimes[alertKey] = DateTime.UtcNow;
+                _lastAlertTimes[alertKey] = DateTime.Now;
             }
             catch (Exception ex)
             {
@@ -245,7 +245,7 @@ namespace SMS.Services.Background
                 Component: {alert.Component}
                 Message: {alert.Message}
                 Details: {alert.Details}
-                Time: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC
+                Time: {DateTime.Now:yyyy-MM-dd HH:mm:ss} Local
                 ===============================================
                 """;
 
@@ -265,7 +265,7 @@ namespace SMS.Services.Background
         public string Component { get; set; } = string.Empty;
         public string Message { get; set; } = string.Empty;
         public string Details { get; set; } = string.Empty;
-        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+        public DateTime Timestamp { get; set; } = DateTime.Now;
     }
 
     public enum AlertLevel

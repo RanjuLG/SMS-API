@@ -20,7 +20,7 @@ namespace SMS.Services
         private readonly ILogger<HealthService> _logger;
         private readonly IConfiguration _configuration;
         private readonly HealthMonitoringConfiguration _healthConfig;
-        private static readonly DateTime _startTime = DateTime.UtcNow;
+        private static readonly DateTime _startTime = DateTime.Now;
 
         public HealthService(
             ApplicationDbContext context,
@@ -47,8 +47,8 @@ namespace SMS.Services
             var health = new SystemHealthDto
             {
                 Status = "healthy",
-                Timestamp = DateTime.UtcNow,
-                Uptime = (long)(DateTime.UtcNow - _startTime).TotalSeconds,
+                Timestamp = DateTime.Now,
+                Uptime = (long)(DateTime.Now - _startTime).TotalSeconds,
                 Version = "1.0.0"
             };
 
@@ -85,7 +85,7 @@ namespace SMS.Services
 
                 health.Status = "connected";
                 health.ResponseTime = stopwatch.ElapsedMilliseconds;
-                health.LastChecked = DateTime.UtcNow;
+                health.LastChecked = DateTime.Now;
                 health.Uptime = await GetDatabaseUptimeAsync();
 
                 // Get actual connection pool info from Entity Framework
@@ -193,7 +193,7 @@ namespace SMS.Services
                     };
                 }
 
-                health.NextScheduled = DateTime.UtcNow.Date.AddDays(1).AddHours(2); // Example: 2 AM next day
+                health.NextScheduled = DateTime.Now.Date.AddDays(1).AddHours(2); // Example: 2 AM next day
                 health.RetentionDays = _healthConfig.BackupSettings.RetentionDays;
                 health.BackupLocation = _healthConfig.BackupSettings.Location;
             }
@@ -401,7 +401,7 @@ namespace SMS.Services
             var health = new SecurityHealthDto
             {
                 Status = "secure",
-                LastSecurityScan = DateTime.UtcNow.AddDays(-1), // Example
+                LastSecurityScan = DateTime.Now.AddDays(-1), // Example
                 Vulnerabilities = new VulnerabilitiesDto
                 {
                     Critical = 0,
@@ -413,7 +413,7 @@ namespace SMS.Services
                 {
                     Ssl = new SslCertificateDto
                     {
-                        ExpiryDate = DateTime.UtcNow.AddYears(1),
+                        ExpiryDate = DateTime.Now.AddYears(1),
                         DaysUntilExpiry = 365,
                         Status = "valid"
                     }
@@ -466,7 +466,7 @@ namespace SMS.Services
                     ComponentName = componentName,
                     Status = status,
                     Metrics = metrics != null ? JsonSerializer.Serialize(metrics) : null,
-                    Timestamp = DateTime.UtcNow
+                    Timestamp = DateTime.Now
                 };
 
                 _context.Set<SystemHealthLog>().Add(healthLog);
@@ -495,7 +495,7 @@ namespace SMS.Services
                     Name = serviceName,
                     Status = "operational",
                     ResponseTime = stopwatch.ElapsedMilliseconds,
-                    LastChecked = DateTime.UtcNow
+                    LastChecked = DateTime.Now
                 };
             }
             catch (Exception ex)
@@ -506,7 +506,7 @@ namespace SMS.Services
                     Name = serviceName,
                     Status = "down",
                     ResponseTime = stopwatch.ElapsedMilliseconds,
-                    LastChecked = DateTime.UtcNow
+                    LastChecked = DateTime.Now
                 };
             }
         }
@@ -639,13 +639,13 @@ namespace SMS.Services
             {
                 // Method 1: Using Process CPU time (for current process)
                 var process = Process.GetCurrentProcess();
-                var startTime = DateTime.UtcNow;
+                var startTime = DateTime.Now;
                 var startCpuUsage = process.TotalProcessorTime;
                 
                 // Wait a brief moment
                 Thread.Sleep(100);
                 
-                var endTime = DateTime.UtcNow;
+                var endTime = DateTime.Now;
                 var endCpuUsage = process.TotalProcessorTime;
                 
                 var cpuUsedMs = (endCpuUsage - startCpuUsage).TotalMilliseconds;

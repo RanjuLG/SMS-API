@@ -236,7 +236,7 @@ namespace SMS.Controllers
         private async Task<string> GenerateJwtToken(ApplicationUser user)
         {
             var roles = await _userManager.GetRolesAsync(user);
-            var now = DateTime.UtcNow;
+            var now = DateTime.Now;
             var expires = now.AddHours(1);
 
             // Debug: Log the JWT key info

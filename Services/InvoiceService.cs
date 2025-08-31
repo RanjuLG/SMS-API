@@ -235,8 +235,8 @@ namespace SMS.Services
                 }
 
                 // Mark invoice and transaction as deleted
-                initialInvoice.DeletedAt = DateTime.UtcNow;
-                transaction.DeletedAt = DateTime.UtcNow;
+                initialInvoice.DeletedAt = DateTime.Now;
+                transaction.DeletedAt = DateTime.Now;
                 _dbContext.Update(initialInvoice);
                 _dbContext.Update(transaction);
                 _dbContext.Save();

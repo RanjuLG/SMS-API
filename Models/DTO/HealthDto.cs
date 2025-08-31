@@ -5,7 +5,7 @@ namespace SMS.Models.DTO
     public class SystemHealthDto
     {
         public string Status { get; set; } = "healthy";
-        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+        public DateTime Timestamp { get; set; } = DateTime.Now;
         public long Uptime { get; set; }
         public string Version { get; set; } = "1.0.0";
     }
@@ -15,7 +15,7 @@ namespace SMS.Models.DTO
         public string Status { get; set; } = "connected";
         public ConnectionPoolDto ConnectionPool { get; set; } = new();
         public double ResponseTime { get; set; }
-        public DateTime LastChecked { get; set; } = DateTime.UtcNow;
+        public DateTime LastChecked { get; set; } = DateTime.Now;
         public double Uptime { get; set; }
     }
 
@@ -38,7 +38,7 @@ namespace SMS.Models.DTO
         public string Name { get; set; } = string.Empty;
         public string Status { get; set; } = "operational";
         public double ResponseTime { get; set; }
-        public DateTime LastChecked { get; set; } = DateTime.UtcNow;
+        public DateTime LastChecked { get; set; } = DateTime.Now;
     }
 
     public class BackupHealthDto

@@ -22,7 +22,7 @@ namespace SMS.Models
         public string? Metrics { get; set; }
 
         [Required]
-        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+        public DateTime Timestamp { get; set; } = DateTime.Now;
 
         // System Health Properties
         [MaxLength(50)]
@@ -91,7 +91,7 @@ namespace SMS.Models
         public int? ResponseTime { get; set; }
 
         [Required]
-        public DateTime LastChecked { get; set; } = DateTime.UtcNow;
+        public DateTime LastChecked { get; set; } = DateTime.Now;
 
         [Column(TypeName = "nvarchar(max)")]
         public string? ErrorMessage { get; set; }

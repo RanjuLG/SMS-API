@@ -66,7 +66,7 @@ namespace SMS.Services.Background
                 // Create health log entry
                 var healthLog = new SystemHealthLog
                 {
-                    Timestamp = DateTime.UtcNow,
+                    Timestamp = DateTime.Now,
                     SystemStatus = systemHealth.Status,
                     DatabaseStatus = databaseHealth.Status,
                     DatabaseResponseTime = databaseHealth.ResponseTime,
@@ -96,7 +96,7 @@ namespace SMS.Services.Background
         {
             try
             {
-                var cutoffDate = DateTime.UtcNow.AddDays(-30);
+                var cutoffDate = DateTime.Now.AddDays(-30);
                 var oldLogs = context.Set<SystemHealthLog>()
                     .Where(log => log.Timestamp < cutoffDate);
 

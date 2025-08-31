@@ -244,7 +244,7 @@ namespace SMS.Services.Background
                     Valid From: {certInfo.NotBefore:yyyy-MM-dd HH:mm:ss}
                     Valid Until: {certInfo.NotAfter:yyyy-MM-dd HH:mm:ss}
                     Message: {message}
-                    Time: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC
+                    Time: {DateTime.Now:yyyy-MM-dd HH:mm:ss} Local
                     ===============================================
                     """;
 

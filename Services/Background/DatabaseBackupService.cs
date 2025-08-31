@@ -77,7 +77,7 @@ namespace SMS.Services.Background
             {
                 BackupType = "full",
                 Status = "running",
-                StartTime = DateTime.UtcNow
+                StartTime = DateTime.Now
             };
 
             try
@@ -110,7 +110,7 @@ namespace SMS.Services.Background
                 backupHistory.FileSize = fileInfo.Length;
                 backupHistory.Location = backupFilePath;
                 backupHistory.Status = "success";
-                backupHistory.EndTime = DateTime.UtcNow;
+                backupHistory.EndTime = DateTime.Now;
 
                 _logger.LogInformation("Backup completed successfully. File: {BackupFile}, Size: {Size:N0} bytes", 
                     backupFileName, fileInfo.Length);
@@ -122,7 +122,7 @@ namespace SMS.Services.Background
             {
                 _logger.LogError(ex, "Backup failed");
                 backupHistory.Status = "failed";
-                backupHistory.EndTime = DateTime.UtcNow;
+                backupHistory.EndTime = DateTime.Now;
                 backupHistory.ErrorMessage = ex.Message;
             }
             finally

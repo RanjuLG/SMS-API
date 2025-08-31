@@ -46,7 +46,7 @@ namespace SMS.Controllers
                 return StatusCode(503, new SystemHealthDto 
                 { 
                     Status = "unhealthy", 
-                    Timestamp = DateTime.UtcNow 
+                    Timestamp = DateTime.Now 
                 });
             }
         }
@@ -77,7 +77,7 @@ namespace SMS.Controllers
                 return StatusCode(503, new DatabaseHealthDto 
                 { 
                     Status = "error", 
-                    LastChecked = DateTime.UtcNow 
+                    LastChecked = DateTime.Now 
                 });
             }
         }
@@ -291,7 +291,7 @@ namespace SMS.Controllers
                     General = new SystemHealthDto 
                     { 
                         Status = "unhealthy", 
-                        Timestamp = DateTime.UtcNow 
+                        Timestamp = DateTime.Now 
                     } 
                 });
             }
@@ -313,14 +313,14 @@ namespace SMS.Controllers
                 
                 if (health.Status == "unhealthy")
                 {
-                    return StatusCode(503, new { status = "unhealthy", timestamp = DateTime.UtcNow });
+                    return StatusCode(503, new { status = "unhealthy", timestamp = DateTime.Now });
                 }
 
-                return Ok(new { status = "healthy", timestamp = DateTime.UtcNow });
+                return Ok(new { status = "healthy", timestamp = DateTime.Now });
             }
             catch
             {
-                return StatusCode(503, new { status = "unhealthy", timestamp = DateTime.UtcNow });
+                return StatusCode(503, new { status = "unhealthy", timestamp = DateTime.Now });
             }
         }
     }
