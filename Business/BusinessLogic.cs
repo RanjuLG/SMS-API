@@ -77,7 +77,7 @@ namespace SMS.Business
                     Invoice invoice = null;
                     Loan loan = null;
                     Installment installment = null;
-                    DateTime dateGenerated = request.Date;
+                    DateTime dateGenerated = DateTime.Now;
 
                     switch ((InvoiceType)request.InvoiceTypeId)
                     {
