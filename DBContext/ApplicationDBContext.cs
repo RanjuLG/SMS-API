@@ -90,6 +90,11 @@ namespace SMS.DBContext
                 .Property(t => t.TotalAmount)
                 .HasColumnType("decimal(18,2)");
 
+            // Configure InterestAmount decimal precision
+            modelBuilder.Entity<Transaction>()
+                .Property(t => t.InterestAmount)
+                .HasColumnType("decimal(18,2)");
+
             modelBuilder.Entity<Item>()
                 .Property(i => i.ItemCaratage)
                 .HasColumnType("decimal(18,2)");
@@ -101,6 +106,11 @@ namespace SMS.DBContext
             modelBuilder.Entity<Item>()
                 .Property(i => i.ItemValue)
                 .HasColumnType("decimal(18,2)");
+
+            // Configure ItemWeight decimal precision
+            modelBuilder.Entity<Item>()
+                .Property(i => i.ItemWeight)
+                .HasColumnType("decimal(18,4)"); // Higher precision for weight measurements
 
             /*
 
@@ -163,6 +173,15 @@ namespace SMS.DBContext
                 .Property(ti => ti.PawnValue)
                 .HasColumnType("decimal(18,2)");
 
+            // Configure Loan decimal properties
+            modelBuilder.Entity<Loan>()
+                .Property(l => l.AmountPaid)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<Loan>()
+                .Property(l => l.OutstandingAmount)
+                .HasColumnType("decimal(18,2)");
+
             // Health monitoring entities configuration
             modelBuilder.Entity<SystemHealthLog>()
                 .HasIndex(e => e.Timestamp)
@@ -195,6 +214,13 @@ namespace SMS.DBContext
             {
                 optionsBuilder.UseLazyLoadingProxies();
             }
+            
+            // Configure warnings to reduce noise in logs
+            optionsBuilder.ConfigureWarnings(warnings =>
+            {
+                // Suppress the MARS savepoints warning as it's expected behavior
+                warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.SqlServerEventId.SavepointsDisabledBecauseOfMARS);
+            });
         }
 
         public override int SaveChanges()

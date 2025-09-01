@@ -128,6 +128,7 @@ namespace SMS.Controllers
                 }
 
                 var users = usersQuery
+                    .OrderBy(u => u.UserName) // Add OrderBy to fix the warning
                     .Skip((request.Page - 1) * request.PageSize)
                     .Take(request.PageSize)
                     .ToList();

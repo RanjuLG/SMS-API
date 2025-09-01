@@ -243,7 +243,13 @@ if (healthConfig.BackgroundServices.EnableCertificateMonitoring)
     }
 
     app.UseCors("CorsPolicy");
-    app.UseHttpsRedirection();
+    
+    // Configure HTTPS redirection only for production
+    if (!app.Environment.IsDevelopment())
+    {
+        app.UseHttpsRedirection();
+    }
+    
     app.UseStaticFiles(); // Make sure this is enabled
     app.UseRouting();
     app.UseAuthentication();  // Enable authentication middleware

@@ -149,14 +149,32 @@ namespace SMS.Services.Background
                 WITH FORMAT, INIT, COMPRESSION,
                 CHECKSUM, STOP_ON_ERROR";
 
-            using var connection = new SqlConnection(connectionString);
-            await connection.OpenAsync();
+            try
+            {
+                using var connection = new SqlConnection(connectionString);
+                await connection.OpenAsync();
+                
+                _logger.LogInformation("Connected to database successfully for backup");
 
-            using var command = new SqlCommand(backupSql, connection);
-            command.Parameters.AddWithValue("@BackupPath", backupPath);
-            command.CommandTimeout = 1800; // 30 minutes timeout
+                using var command = new SqlCommand(backupSql, connection);
+                command.Parameters.AddWithValue("@BackupPath", backupPath);
+                command.CommandTimeout = 1800; // 30 minutes timeout
 
-            await command.ExecuteNonQueryAsync();
+                _logger.LogInformation("Executing backup to: {BackupPath}", backupPath);
+                await command.ExecuteNonQueryAsync();
+                _logger.LogInformation("Backup command executed successfully");
+            }
+            catch (SqlException sqlEx)
+            {
+                _logger.LogError(sqlEx, "SQL Server error during backup. Error Number: {ErrorNumber}, Severity: {Severity}, State: {State}", 
+                    sqlEx.Number, sqlEx.Class, sqlEx.State);
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "General error during backup execution");
+                throw;
+            }
         }
 
         private string GetDatabaseNameFromConnectionString(string connectionString)
