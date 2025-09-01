@@ -31,73 +31,86 @@ namespace SMS.Controllers
 
         [HttpGet]
         [Route("")]
-        public ActionResult<PaginatedResponse<GetCustomerDTO>> GetCustomers([FromQuery] CustomerSearchRequest request)
+        public async Task<ActionResult<PaginatedResponse<GetCustomerDTO>>> GetCustomers([FromQuery] CustomerSearchRequest request)
         {
             try
             {
-                // For now, use the existing service method but we'll need to enhance it for pagination
-                var dateRange = new SMS.Generic.DateTimeRange 
+                // Get the filtered and sorted query from the service
+                var query = await _customerService.GetCustomersQueryAsync(request);
+                
+                // Convert to DTO query for pagination
+                var dtoQuery = query.Select(c => new GetCustomerDTO
+                {
+                    CustomerId = c.CustomerId,
+                    CustomerNIC = c.CustomerNIC,
+                    CustomerName = c.CustomerName,
+                    CustomerAddress = c.CustomerAddress,
+                    CustomerContactNo = c.CustomerContactNo,
+                    CreatedAt = c.CreatedAt,
+                    NICPhotoPath = c.NICPhotoPath
+                });
+
+                // Apply pagination using the pagination service
+                var appliedFilters = new 
                 { 
-                    From = request.From, 
-                    To = request.To 
+                    CustomerNIC = request.CustomerNIC,
+                    DateRange = new { From = request.From, To = request.To }
                 };
-                
-                var customers = _customerService.GetAllCustomers(dateRange);
-                var customersDTO = _mapper.Map<IEnumerable<GetCustomerDTO>>(customers);
-                
-                // Apply search if provided
-                if (!string.IsNullOrEmpty(request.Search))
-                {
-                    customersDTO = customersDTO.Where(c => 
-                        (c.CustomerName != null && c.CustomerName.Contains(request.Search, StringComparison.OrdinalIgnoreCase)) ||
-                        c.CustomerNIC.Contains(request.Search, StringComparison.OrdinalIgnoreCase) ||
-                        (c.CustomerAddress != null && c.CustomerAddress.Contains(request.Search, StringComparison.OrdinalIgnoreCase)) ||
-                        (c.CustomerContactNo != null && c.CustomerContactNo.Contains(request.Search, StringComparison.OrdinalIgnoreCase))
-                    );
-                }
 
-                // Apply NIC filter if provided
-                if (!string.IsNullOrEmpty(request.CustomerNIC))
-                {
-                    customersDTO = customersDTO.Where(c => c.CustomerNIC.Contains(request.CustomerNIC, StringComparison.OrdinalIgnoreCase));
-                }
-
-                // Apply sorting
-                if (!string.IsNullOrEmpty(request.SortBy))
-                {
-                    customersDTO = request.SortBy.ToLower() switch
-                    {
-                        "customername" => request.SortOrder?.ToLower() == "desc" 
-                            ? customersDTO.OrderByDescending(c => c.CustomerName) 
-                            : customersDTO.OrderBy(c => c.CustomerName),
-                        "customernic" => request.SortOrder?.ToLower() == "desc" 
-                            ? customersDTO.OrderByDescending(c => c.CustomerNIC) 
-                            : customersDTO.OrderBy(c => c.CustomerNIC),
-                        "createdat" => request.SortOrder?.ToLower() == "desc" 
-                            ? customersDTO.OrderByDescending(c => c.CreatedAt) 
-                            : customersDTO.OrderBy(c => c.CreatedAt),
-                        _ => customersDTO.OrderBy(c => c.CustomerName)
-                    };
-                }
-
-                // Apply pagination manually (until we enhance the service layer)
-                var totalItems = customersDTO.Count();
-                var pagedCustomers = customersDTO
-                    .Skip((request.Page - 1) * request.PageSize)
-                    .Take(request.PageSize)
-                    .ToList();
-
-                var pagination = _paginationService.CreatePaginationMetadata(request.Page, request.PageSize, totalItems);
-                var filters = _paginationService.CreateFilterMetadata(request, new { request.CustomerNIC });
-
-                var response = new PaginatedResponse<GetCustomerDTO>
-                {
-                    Data = pagedCustomers,
-                    Pagination = pagination,
-                    Filters = filters
-                };
+                var response = await _paginationService.CreatePaginatedResponseAsync(
+                    dtoQuery, 
+                    request, 
+                    appliedFilters
+                );
 
                 return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Internal server error", details = ex.Message });
+            }
+        }
+
+        [HttpGet]
+        [Route("search")]
+        public async Task<ActionResult<IEnumerable<GetCustomerDTO>>> SearchCustomers([FromQuery] string query, [FromQuery] int limit = 10)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(query))
+                {
+                    return BadRequest("Search query cannot be empty");
+                }
+
+                var searchRequest = new CustomerSearchRequest
+                {
+                    Search = query,
+                    PageSize = limit,
+                    Page = 1,
+                    From = DateTime.MinValue,
+                    To = DateTime.MaxValue
+                };
+
+                var customerQuery = await _customerService.GetCustomersQueryAsync(searchRequest);
+                var customers = customerQuery.Take(limit).ToList();
+                var customerDTOs = _mapper.Map<IEnumerable<GetCustomerDTO>>(customers);
+
+                return Ok(customerDTOs);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Internal server error", details = ex.Message });
+            }
+        }
+
+        [HttpGet]
+        [Route("count")]
+        public ActionResult<object> GetCustomerCount()
+        {
+            try
+            {
+                var count = _customerService.GetCustomerCount();
+                return Ok(new { totalCustomers = count });
             }
             catch (Exception ex)
             {
