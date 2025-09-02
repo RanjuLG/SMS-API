@@ -50,8 +50,10 @@ namespace SMS.Models.DTO
         public int? Status { get; set; }
     }
 
-    public class ItemSearchRequest : DateRangeRequest
+    public class ItemSearchRequest : PaginationRequest
     {
+        public DateTime? From { get; set; }
+        public DateTime? To { get; set; }
         public string? CustomerNIC { get; set; }
         public decimal? MinValue { get; set; }
         public decimal? MaxValue { get; set; }
