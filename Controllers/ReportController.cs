@@ -20,6 +20,7 @@ namespace SMS.Controllers
         private readonly ITransactionService _transactionService;
         private readonly ITransactionItemService _transactionItemService;
         private readonly IInstallmentService _installmentService;
+        private readonly ILoanService _loanService;
         private readonly BusinessLogic _businessLogic;
 
         public ReportController(IInvoiceService invoiceService,
@@ -28,6 +29,7 @@ namespace SMS.Controllers
            ITransactionService transactionService,
            ITransactionItemService transactionItemService,
            IInstallmentService installmentService,
+           ILoanService loanService,
            BusinessLogic businessLogic)
         {
             _invoiceService = invoiceService;
@@ -36,6 +38,7 @@ namespace SMS.Controllers
             _transactionService = transactionService;
             _transactionItemService = transactionItemService;
             _installmentService = installmentService;
+            _loanService = loanService;
             _businessLogic = businessLogic;
             _customerService = customerService;
         }
@@ -84,26 +87,28 @@ namespace SMS.Controllers
 
         [HttpGet]
         [Route("overview")]
-        public ActionResult<OverviewReportDTO> GetOverviewReport()
+        public ActionResult GetOverviewReport()
         {
             try
             {
                 var legacyOverview = _businessLogic.ProcessOverview();
                 
-                // Convert to new format
-                var overview = new OverviewReportDTO
+                // Calculate the correct values using proper service methods
+                var totalTransactions = _transactionService.GetTransactionCount();
+                var totalOutstandingAmount = _loanService.GetTotalOutstandingAmount();
+                var settledLoans = _loanService.GetSettledLoanCount() ?? 0;
+                
+                // Return only the required fields as requested
+                var overview = new
                 {
                     TotalCustomers = legacyOverview?.CustomerCount ?? 0,
                     TotalItems = legacyOverview?.InventoryCount ?? 0,
-                    TotalTransactions = 0, // TODO: Get from actual data
+                    TotalTransactions = totalTransactions,
                     TotalInvoices = legacyOverview?.TotalInvoices ?? 0,
                     TotalTransactionAmount = legacyOverview?.RevenueGenerated ?? 0,
-                    TotalOutstandingAmount = 0, // TODO: Calculate
+                    TotalOutstandingAmount = totalOutstandingAmount,
                     ActiveLoans = legacyOverview?.TotalActiveLoans ?? 0,
-                    SettledLoans = 0, // TODO: Calculate
-                    MonthlyTransactions = new List<MonthlyTransactionSummary>(),
-                    TransactionsByType = new List<TransactionTypeSummary>(),
-                    TopCustomers = new List<TopCustomerSummary>()
+                    SettledLoans = settledLoans
                 };
 
                 return Ok(overview);
@@ -141,7 +146,7 @@ namespace SMS.Controllers
                     return BadRequest();
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return StatusCode(500, "Internal server error");
             }
@@ -164,7 +169,7 @@ namespace SMS.Controllers
                     return NotFound();
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return StatusCode(500, "Internal server error");
             }

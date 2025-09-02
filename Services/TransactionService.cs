@@ -234,5 +234,10 @@ namespace SMS.Services
 
             return revenue;
         }
+
+        public int GetTransactionCount()
+        {
+            return _dbContext.Get<Transaction>(t => t.DeletedAt == null).Count();
+        }
     }
 }

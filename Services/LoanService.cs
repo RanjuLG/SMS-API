@@ -142,8 +142,18 @@ namespace SMS.Services
 
         public int? GetActiveLoanCount()
         {
-
             return _dbContext.Get<Loan>(l => l.DeletedAt == null && !l.IsSettled).Count();
+        }
+
+        public int? GetSettledLoanCount()
+        {
+            return _dbContext.Get<Loan>(l => l.DeletedAt == null && l.IsSettled).Count();
+        }
+
+        public decimal GetTotalOutstandingAmount()
+        {
+            return _dbContext.Get<Loan>(l => l.DeletedAt == null && !l.IsSettled)
+                           .Sum(l => l.OutstandingAmount);
         }
     }
 }
