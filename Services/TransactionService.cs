@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using SMS.Generic;
 using SMS.Interfaces;
 using SMS.Models;
-using SMS.Models.DTO.SMS.Models.DTO;
 using SMS.Models.DTO;
 
 namespace SMS.Services
@@ -45,7 +44,7 @@ namespace SMS.Services
             return new TransactionReportDTO
             {
                 TransactionId = transaction.TransactionId,
-                TransactionType = transaction.TransactionType,
+                TransactionType = (int)transaction.TransactionType,
                 CreatedAt = transaction.CreatedAt,
                 SubTotal = transaction.SubTotal,
                 InterestRate = transaction.InterestRate,
@@ -88,7 +87,7 @@ namespace SMS.Services
             return new InvoiceReportDTO
             {
                 InvoiceId = invoice.InvoiceId,
-                InvoiceTypeId = invoice.InvoiceTypeId,
+                InvoiceTypeId = (int)invoice.InvoiceTypeId,
                 InvoiceNo = invoice.InvoiceNo,
                 DateGenerated = invoice.DateGenerated,
                 Status = invoice.Status
@@ -133,37 +132,85 @@ namespace SMS.Services
 
         public void CreateTransaction(Transaction transaction)
         {
-            _dbContext.Create<Transaction>(transaction);
-            _dbContext.Save();
+            using (var dbTransaction = _dbContext.CreateTransaction())
+            {
+                try
+                {
+                    _dbContext.Create<Transaction>(transaction);
+                    _dbContext.Save();
+                    _dbContext.CommitTransaction();
+                }
+                catch (Exception)
+                {
+                    _dbContext.RollbackTransaction();
+                    throw;
+                }
+            }
         }
 
         public void UpdateTransaction(Transaction transaction)
         {
-            transaction.UpdatedAt = DateTime.Now;
-            _dbContext.Update<Transaction>(transaction);
-            _dbContext.Save();
+            using (var dbTransaction = _dbContext.CreateTransaction())
+            {
+                try
+                {
+                    transaction.UpdatedAt = DateTime.Now;
+                    _dbContext.Update<Transaction>(transaction);
+                    _dbContext.Save();
+                    _dbContext.CommitTransaction();
+                }
+                catch (Exception)
+                {
+                    _dbContext.RollbackTransaction();
+                    throw;
+                }
+            }
         }
 
         public void DeleteTransaction(int transactionId)
         {
-            var transaction = _dbContext.GetById<Transaction>(transactionId);
-            if (transaction != null)
+            using (var dbTransaction = _dbContext.CreateTransaction())
             {
-                transaction.DeletedAt = DateTime.Now;
-                _dbContext.Update<Transaction>(transaction);
-                _dbContext.Save();
+                try
+                {
+                    var transaction = _dbContext.GetById<Transaction>(transactionId);
+                    if (transaction != null)
+                    {
+                        transaction.DeletedAt = DateTime.Now;
+                        _dbContext.Update<Transaction>(transaction);
+                        _dbContext.Save();
+                    }
+                    _dbContext.CommitTransaction();
+                }
+                catch (Exception)
+                {
+                    _dbContext.RollbackTransaction();
+                    throw;
+                }
             }
         }
 
         public void DeleteTransactions(IEnumerable<int> transactionIds)
         {
-            var transactions = _dbContext.Get<Transaction>(t => transactionIds.Contains(t.TransactionId) && t.DeletedAt == null).ToList();
-            foreach (var transaction in transactions)
+            using (var dbTransaction = _dbContext.CreateTransaction())
             {
-                transaction.DeletedAt = DateTime.Now;
-                _dbContext.Update<Transaction>(transaction);
+                try
+                {
+                    var transactions = _dbContext.Get<Transaction>(t => transactionIds.Contains(t.TransactionId) && t.DeletedAt == null).ToList();
+                    foreach (var transaction in transactions)
+                    {
+                        transaction.DeletedAt = DateTime.Now;
+                        _dbContext.Update<Transaction>(transaction);
+                    }
+                    _dbContext.Save();
+                    _dbContext.CommitTransaction();
+                }
+                catch (Exception)
+                {
+                    _dbContext.RollbackTransaction();
+                    throw;
+                }
             }
-            _dbContext.Save();
         }
 
         public IEnumerable<Transaction> GetTransactionsByCustomerId(int customerId)
@@ -186,6 +233,11 @@ namespace SMS.Services
             revenue = interestTransactions.Sum();
 
             return revenue;
+        }
+
+        public int GetTransactionCount()
+        {
+            return _dbContext.Get<Transaction>(t => t.DeletedAt == null).Count();
         }
     }
 }

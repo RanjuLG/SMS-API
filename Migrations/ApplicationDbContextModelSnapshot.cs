@@ -223,6 +223,48 @@ namespace SMS.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("SMS.Models.BackupHistory", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("BackupType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("EndTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<long?>("FileSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Location")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("StartTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StartTime")
+                        .HasDatabaseName("IX_BackupHistory_StartTime");
+
+                    b.ToTable("BackupHistory");
+                });
+
             modelBuilder.Entity("SMS.Models.Customer", b =>
                 {
                     b.Property<int>("CustomerId")
@@ -443,7 +485,7 @@ namespace SMS.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal?>("ItemWeight")
-                        .HasColumnType("decimal(18,2)");
+                        .HasColumnType("decimal(18,4)");
 
                     b.Property<int?>("Status")
                         .HasColumnType("int");
@@ -513,7 +555,8 @@ namespace SMS.Migrations
 
                     b.HasIndex("LoanPeriodId");
 
-                    b.HasIndex("TransactionId");
+                    b.HasIndex("TransactionId")
+                        .IsUnique();
 
                     b.ToTable("Loans");
                 });
@@ -558,6 +601,105 @@ namespace SMS.Migrations
                     b.HasIndex("LoanPeriodId");
 
                     b.ToTable("Pricings");
+                });
+
+            modelBuilder.Entity("SMS.Models.ServiceHealthStatus", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("ErrorMessage")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("LastChecked")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ResponseTime")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ServiceName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LastChecked")
+                        .HasDatabaseName("IX_ServiceHealthStatus_Checked");
+
+                    b.HasIndex("ServiceName")
+                        .HasDatabaseName("IX_ServiceHealthStatus_Service");
+
+                    b.ToTable("ServiceHealthStatus");
+                });
+
+            modelBuilder.Entity("SMS.Models.SystemHealthLog", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("ComponentName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<double?>("CpuUsagePercentage")
+                        .HasColumnType("float");
+
+                    b.Property<double?>("DatabaseResponseTime")
+                        .HasColumnType("float");
+
+                    b.Property<string>("DatabaseStatus")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<double?>("DatabaseStoragePercentage")
+                        .HasColumnType("float");
+
+                    b.Property<double?>("FilesStoragePercentage")
+                        .HasColumnType("float");
+
+                    b.Property<double?>("LogsStoragePercentage")
+                        .HasColumnType("float");
+
+                    b.Property<double?>("MemoryUsagePercentage")
+                        .HasColumnType("float");
+
+                    b.Property<string>("Metrics")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("SystemStatus")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ComponentName")
+                        .HasDatabaseName("IX_SystemHealthLogs_Component");
+
+                    b.HasIndex("Timestamp")
+                        .HasDatabaseName("IX_SystemHealthLogs_Timestamp");
+
+                    b.ToTable("SystemHealthLogs");
                 });
 
             modelBuilder.Entity("SMS.Models.Transaction", b =>
@@ -738,8 +880,8 @@ namespace SMS.Migrations
                         .HasForeignKey("LoanPeriodId");
 
                     b.HasOne("SMS.Models.Transaction", "Transaction")
-                        .WithMany()
-                        .HasForeignKey("TransactionId")
+                        .WithOne("Loan")
+                        .HasForeignKey("SMS.Models.Loan", "TransactionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -819,6 +961,9 @@ namespace SMS.Migrations
                     b.Navigation("Installments");
 
                     b.Navigation("Invoice")
+                        .IsRequired();
+
+                    b.Navigation("Loan")
                         .IsRequired();
 
                     b.Navigation("TransactionItems");

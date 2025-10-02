@@ -1,47 +1,38 @@
-﻿namespace SMS.Models.DTO
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace SMS.Models.DTO
 {
     public class GetCustomerDTO
     {
         public int CustomerId { get; set; }
-        public string CustomerNIC { get; set; }
+        public string CustomerNIC { get; set; } = string.Empty;
         public string? CustomerName { get; set; }
         public string? CustomerAddress { get; set; }
         public string? CustomerContactNo { get; set; }
         public DateTime? CreatedAt { get; set; }
-        public string? NICPhotoPath { get; set; }  // Add NIC Photo Path
-
+        public string? NICPhotoPath { get; set; }
     }
+
     public class CreateCustomerDTO
     {
-       // public int CustomerId { get; set; }
-        public string CustomerNIC { get; set; }
+        [Required]
+        public string CustomerNIC { get; set; } = string.Empty;
         public string? CustomerName { get; set; }
         public string? CustomerAddress { get; set; }
         public string? CustomerContactNo { get; set; }
-        public string? NICPhotoPath { get; set; }  // Add NIC Photo Path
-
-
     }
+
     public class UpdateCustomerDTO
     {
-        // public int CustomerId { get; set; }
-        public string CustomerNIC { get; set; }
+        [Required]
+        public string CustomerNIC { get; set; } = string.Empty;
         public string? CustomerName { get; set; }
         public string? CustomerAddress { get; set; }
         public string? CustomerContactNo { get; set; }
-        public DateTime? UpdatedAt { get; set; } = DateTime.Now;
-        public string? NICPhotoPath { get; set; }  // Add NIC Photo Path
     }
 
-    public class CommonCustomerDTO
+    public class CustomerSearchRequest : DateRangeRequest
     {
-        // public int CustomerId { get; set; }
-        public string CustomerNIC { get; set; }
-        public string? CustomerName { get; set; }
-        public string? CustomerAddress { get; set; }
-        public string? CustomerContactNo { get; set; }
-        public string? NICPhotoPath { get; set; }  // Add NIC Photo Path
+        public string? CustomerNIC { get; set; }
     }
-
-
 }

@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using SMS.Interfaces;
 using SMS.Models;
 using SMS.Models.DTO;
-using SMS.Models.DTO.SMS.Models.DTO;
 using System;
 using System.Collections.Generic;
 

@@ -16,5 +16,6 @@ namespace SMS.Interfaces
         void DeleteTransactions(IEnumerable<int> transactionIds);
         IEnumerable<Transaction> GetTransactionsByCustomerId(int customerId);
         decimal? GetRevenue();
+        int GetTransactionCount();
     }
 }

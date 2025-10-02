@@ -1,6 +1,6 @@
 ﻿using SMS.Enums;
 using SMS.Models;
-using SMS.Models.DTO.SMS.Models.DTO;
+using SMS.Models.DTO;
 using System.Collections.Generic;
 
 namespace SMS.Interfaces

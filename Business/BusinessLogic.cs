@@ -1,7 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using SMS.Interfaces;
-using SMS.Models.DTO.SMS.Models.DTO;
 using SMS.Models.DTO;
 using SMS.Models;
 using SMS.Migrations;
@@ -66,63 +65,64 @@ namespace SMS.Business
                 return new BadRequestObjectResult("Invalid request data.");
             }
 
-            try
+            using (var dbTransaction = _dbContext.CreateTransaction())
             {
-                _dbContext.CreateTransaction(); // Start a new transaction
-
-                // Step 1: Handle Customer
-                var customer = GetOrCreateCustomer(request.Customer);
-
-                // Step 2: Process Transaction and Invoice Based on Invoice Type
-                Transaction transaction = null;
-                Invoice invoice = null;
-                Loan loan = null;
-                Installment installment = null;
-                DateTime dateGenerated = request.Date;
-
-                switch (request.InvoiceTypeId)
+                try
                 {
-                    case InvoiceType.InitialPawnInvoice:
-                        transaction = CreateTransaction(customer.CustomerId, request, TransactionType.LoanIssuance, dateGenerated);
-                        loan = CreateLoan(transaction.TransactionId, request);
-                        ProcessInitialItems(request.Items, transaction.TransactionId, customer.CustomerId);
-                        invoice = CreateInvoice(transaction.TransactionId, InvoiceType.InitialPawnInvoice, dateGenerated);
-                        break;
+                    // Step 1: Handle Customer
+                    var customer = GetOrCreateCustomer(request.Customer);
 
-                    case InvoiceType.InstallmentPaymentInvoice:
-                        transaction = CreateTransaction(customer.CustomerId, request, TransactionType.InstallmentPayment, dateGenerated);
-                        installment = CreateInstallment(initialInvoiceNumber, transaction.TransactionId, installmentNumber, dateGenerated);
-                        loan = UpdateInitialLoan(initialInvoiceNumber, transaction.TotalAmount);
-                        invoice = CreateInvoice(transaction.TransactionId, InvoiceType.InstallmentPaymentInvoice, dateGenerated);
-                        break;
+                    // Step 2: Process Transaction and Invoice Based on Invoice Type
+                    Transaction transaction = null;
+                    Invoice invoice = null;
+                    Loan loan = null;
+                    Installment installment = null;
+                    DateTime dateGenerated = DateTime.Now;
 
-                    case InvoiceType.SettlementInvoice:
-                        transaction = CreateTransaction(customer.CustomerId, request, TransactionType.LoanClosure, dateGenerated);
-                        bool isLoanSettled = SettleLoan(initialInvoiceNumber);
+                    switch ((InvoiceType)request.InvoiceTypeId)
+                    {
+                        case InvoiceType.InitialPawnInvoice:
+                            transaction = CreateTransactionWithoutTransaction(customer.CustomerId, request, TransactionType.LoanIssuance, dateGenerated);
+                            loan = CreateLoanWithoutTransaction(transaction.TransactionId, request);
+                            ProcessInitialItemsWithoutTransaction(request.Items, transaction.TransactionId, customer.CustomerId);
+                            invoice = CreateInvoiceWithoutTransaction(transaction.TransactionId, InvoiceType.InitialPawnInvoice, dateGenerated);
+                            break;
 
-                        if (isLoanSettled)
-                        {
-                            ProcesSettlementItems(initialInvoiceNumber);
-                            invoice = CreateInvoice(transaction.TransactionId, InvoiceType.SettlementInvoice, dateGenerated);
-                        }
-                        break;
+                        case InvoiceType.InstallmentPaymentInvoice:
+                            transaction = CreateTransactionWithoutTransaction(customer.CustomerId, request, TransactionType.InstallmentPayment, dateGenerated);
+                            installment = CreateInstallmentWithoutTransaction(initialInvoiceNumber, transaction.TransactionId, installmentNumber, dateGenerated);
+                            loan = UpdateInitialLoanWithoutTransaction(initialInvoiceNumber, transaction.TotalAmount);
+                            invoice = CreateInvoiceWithoutTransaction(transaction.TransactionId, InvoiceType.InstallmentPaymentInvoice, dateGenerated);
+                            break;
 
-                    default:
-                        _logger.LogWarning($"Unsupported Invoice Type: {request.InvoiceTypeId}");
-                        return new BadRequestObjectResult("Invalid Invoice Type");
+                        case InvoiceType.SettlementInvoice:
+                            transaction = CreateTransactionWithoutTransaction(customer.CustomerId, request, TransactionType.LoanClosure, dateGenerated);
+                            bool isLoanSettled = SettleLoanWithoutTransaction(initialInvoiceNumber);
+
+                            if (isLoanSettled)
+                            {
+                                ProcesSettlementItemsWithoutTransaction(initialInvoiceNumber);
+                                invoice = CreateInvoiceWithoutTransaction(transaction.TransactionId, InvoiceType.SettlementInvoice, dateGenerated);
+                            }
+                            break;
+
+                        default:
+                            _logger.LogWarning($"Unsupported Invoice Type: {request.InvoiceTypeId}");
+                            return new BadRequestObjectResult("Invalid Invoice Type");
+                    }
+
+                    // Step 3: Commit the transaction and return the Created Invoice ID
+                    _dbContext.CommitTransaction();
+                    var createdInvoice = _invoiceService.GetLastInvoice();
+
+                    return new OkObjectResult(createdInvoice.InvoiceId);
                 }
-
-                // Step 3: Commit the transaction and return the Created Invoice ID
-                _dbContext.CommitTransaction();
-                var createdInvoice = _invoiceService.GetLastInvoice();
-
-                return new OkObjectResult(createdInvoice.InvoiceId);
-            }
-            catch (Exception ex)
-            {
-                _dbContext.RollbackTransaction(); // Rollback in case of error
-                _logger.LogError(ex, "An error occurred while processing the invoice.");
-                return new StatusCodeResult(500);
+                catch (Exception ex)
+                {
+                    _dbContext.RollbackTransaction();
+                    _logger.LogError(ex, "An error occurred while processing the invoice.");
+                    return new StatusCodeResult(500);
+                }
             }
         }
 
@@ -143,6 +143,25 @@ namespace SMS.Business
             }
         }
 
+        private Transaction CreateTransactionWithoutTransaction(int customerId, CreateInvoiceDTO request, TransactionType transactionType, DateTime DateGenerated)
+        {
+            var transaction = new Transaction
+            {
+                CustomerId = customerId,
+                SubTotal = request.SubTotal,
+                InterestRate = request.InterestRate,
+                InterestAmount = request.InterestAmount,
+                TotalAmount = request.TotalAmount,
+                TransactionType = transactionType,
+                CreatedAt = DateGenerated,
+                UpdatedAt = DateTime.Now
+            };
+
+            _dbContext.Create<Transaction>(transaction);
+            _dbContext.Save();
+            return transaction;
+        }
+
         private Transaction CreateTransaction(int customerId, CreateInvoiceDTO request, TransactionType transactionType,DateTime DateGenerated)
         {
             var transaction = new Transaction
@@ -159,6 +178,50 @@ namespace SMS.Business
 
             _transactionService.CreateTransaction(transaction);
             return transaction;
+        }
+
+        private void ProcessInitialItemsWithoutTransaction(CustomItemDTO[] items, int transactionId, int customerId)
+        {
+            foreach (var item in items)
+            {
+                if (item.itemId == 0) // Assuming itemId of 0 means new item
+                {
+                    var newItem = new Item
+                    {
+                        ItemDescription = item.ItemDescription,
+                        ItemRemarks = item.ItemRemarks,
+                        ItemCaratage = item.ItemCaratage,
+                        ItemWeight = item.ItemWeight,
+                        ItemGoldWeight = item.ItemGoldWeight,
+                        ItemValue = item.ItemValue,
+                        Status = (int)ItemStatus.InStock,
+                        CustomerId = customerId,
+                    };
+
+                    _dbContext.Create<Item>(newItem);
+                    _dbContext.Save();
+
+                    var transactionItem = new TransactionItem
+                    {
+                        TransactionId = transactionId,
+                        ItemId = newItem.ItemId
+                    };
+
+                    _dbContext.Create<TransactionItem>(transactionItem);
+                    _dbContext.Save();
+                }
+                else
+                {
+                    var transactionItem = new TransactionItem
+                    {
+                        TransactionId = transactionId,
+                        ItemId = item.itemId
+                    };
+
+                    _dbContext.Create<TransactionItem>(transactionItem);
+                    _dbContext.Save();
+                }
+            }
         }
 
         private void ProcessInitialItems(CustomItemDTO[] items, int transactionId, int customerId)
@@ -201,6 +264,25 @@ namespace SMS.Business
                 }
             }
         }
+        private void ProcesSettlementItemsWithoutTransaction(string initialInvoiceNumber)
+        {
+            var initialInvoice = _invoiceService.GetInvoiceByInvoiceNo(initialInvoiceNumber).FirstOrDefault();
+
+            if (initialInvoice != null)
+            {
+                var settlementItems = initialInvoice.Transaction.TransactionItems
+                    .SelectMany(i => new[] { i.Item });
+
+                foreach (var item in settlementItems)
+                {
+                    item.Status = (int)ItemStatus.Redeemed;
+                    
+                    _dbContext.Update<Item>(item);
+                    _dbContext.Save();
+                }
+            }
+        }
+
         private void ProcesSettlementItems(string initialInvoiceNumber)
         {
             var initialInvoice = _invoiceService.GetInvoiceByInvoiceNo(initialInvoiceNumber).FirstOrDefault();
@@ -219,6 +301,24 @@ namespace SMS.Business
             }
         }
 
+        private Invoice CreateInvoiceWithoutTransaction(int transactionId, InvoiceType invoiceType, DateTime DateGenerated)
+        {
+            var invoice = new Invoice
+            {
+                InvoiceNo = _invoiceService.GenerateInvoiceNumber(),
+                InvoiceTypeId = invoiceType,
+                TransactionId = transactionId,
+                DateGenerated = DateGenerated,
+                Status = 1,
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now
+            };
+
+            _dbContext.Create<Invoice>(invoice);
+            _dbContext.Save();
+            return invoice;
+        }
+
         private Invoice CreateInvoice(int transactionId, InvoiceType invoiceType,DateTime DateGenerated)
         {
             var invoice = new Invoice
@@ -235,6 +335,47 @@ namespace SMS.Business
             _invoiceService.CreateInvoice(invoice);
             return invoice;
         }
+        private Installment CreateInstallmentWithoutTransaction(string InitialInvoiceNumber, int transactionId, int installmentNumber,DateTime DateGenerated)
+        {
+            //var initialLoan = null;
+            int loanId = 0;
+            var intialInvoice = _invoiceService.GetInvoiceByInvoiceNo(InitialInvoiceNumber).FirstOrDefault();
+            var transaction = _transactionService.GetTransactionById(transactionId);
+            var initialLoan = new Loan();
+
+            if(intialInvoice != null)
+            {
+                IDateTimeRange dateTimeRange = new DateTimeRange
+                {
+                    From = DateTime.MinValue, // Set appropriate start date
+                    To = DateTime.MinValue // Set appropriate end date
+                };
+                initialLoan = _loanService.GetAllLoans(dateTimeRange).Where(x => x.TransactionId == intialInvoice.TransactionId).ToList().FirstOrDefault();
+               
+            }
+
+            if (intialInvoice != null && initialLoan != null)
+            {
+
+                var installment = new Installment
+                {
+                    TransactionId = transactionId,
+                    LoanId = initialLoan.LoanId,
+                    InstallmentNumber = installmentNumber,
+                    AmountPaid = transaction.TotalAmount,
+                    DueDate = initialLoan.StartDate.AddMonths(installmentNumber),
+                    PaymentDate = DateGenerated,
+                };
+
+                _dbContext.Create<Installment>(installment);
+                _dbContext.Save();
+
+                return installment;
+            };
+
+            return null;
+        }
+
         private Installment CreateInstallment(string InitialInvoiceNumber, int transactionId, int installmentNumber,DateTime DateGenerated)
         {
             //var initialLoan = null;
@@ -273,6 +414,32 @@ namespace SMS.Business
             };
 
             return null;
+        }
+
+        private Loan CreateLoanWithoutTransaction(int TransactionID,CreateInvoiceDTO request)
+        {
+            var loanPeriod = _karatageService.GetLoanPeriodById(request.LoanPeriodId.Value);
+
+            if(loanPeriod != null)
+            {
+                var loan = new Loan
+                {   LoanPeriodId = request.LoanPeriodId,
+                    TransactionId = TransactionID,
+                    StartDate = request.Date,
+                    OutstandingAmount = request.TotalAmount,
+                    EndDate = request.Date.AddMonths(loanPeriod.Period)
+
+                };
+
+                _dbContext.Create<Loan>(loan);
+                _dbContext.Save();
+
+                return loan;
+            }
+            else
+            {
+                return null;
+            }
         }
 
         private Loan CreateLoan (int TransactionID,CreateInvoiceDTO request)
@@ -352,10 +519,10 @@ namespace SMS.Business
             var loanInfo = new LoanInfo
             {
                 PrincipleAmount = initialTransaction.SubTotal,
-                InterestRate = initialTransaction.InterestRate,
+                InterestRate = initialTransaction.InterestRate ?? 0,
                 InterestAmount = totalInterestAmount,
                 TotalAmount = initialTransaction.TotalAmount,
-                LoanPeriod = initialLoan.LoanPeriod.Period,
+                LoanPeriod = initialLoan.LoanPeriod?.Period ?? 0,
                 DailyInterest = interestForOneDay,
                 LastInstallmentDate = lastInstallmentDate,
                 //new DateTime(2024, 4, 1, 0, 0, 0, DateTimeKind.Local),
@@ -556,6 +723,39 @@ namespace SMS.Business
         */
 
 
+        public bool SettleLoanWithoutTransaction(string initialInvoiceNumber)
+        {
+            // Get the Transaction ID associated with the invoice number
+            var transactionId = _invoiceService.GetInvoiceByInvoiceNo(initialInvoiceNumber)
+                                                .FirstOrDefault()?.Transaction.TransactionId;
+
+            if (transactionId != null)
+            {
+                IDateTimeRange dateTimeRange = new DateTimeRange
+                {
+                    From = DateTime.MinValue, // Set appropriate start date
+                    To = DateTime.MinValue // Set appropriate end date
+                };
+                // Find the loan associated with the transaction ID
+                var loan = _loanService.GetAllLoans(dateTimeRange)
+                                       .Where(i => i.TransactionId == transactionId)
+                                       .FirstOrDefault();
+
+                if (loan != null)
+                {
+                    // Set the loan as settled
+                    loan.IsSettled = true;
+
+                    // Update directly without transaction wrapper
+                    _dbContext.Update<Loan>(loan);
+                    _dbContext.Save();
+
+                    return true;
+                }
+            }
+            return false;
+        }
+
         public bool SettleLoan(string initialInvoiceNumber)
         {
             // Get the Transaction ID associated with the invoice number
@@ -588,6 +788,40 @@ namespace SMS.Business
             return false;
         }
 
+
+        public Loan UpdateInitialLoanWithoutTransaction(string initialInvoiceNumber,decimal installmentPaid)
+        {
+            // Get the Transaction ID associated with the invoice number
+            var transactionId = _invoiceService.GetInvoiceByInvoiceNo(initialInvoiceNumber)
+                                                .FirstOrDefault()?.Transaction.TransactionId;
+
+            if (transactionId != null)
+            {
+                IDateTimeRange dateTimeRange = new DateTimeRange
+                {
+                    From = DateTime.MinValue, // Set appropriate start date
+                    To = DateTime.MinValue // Set appropriate end date
+                };
+                // Find the loan associated with the transaction ID
+                var loan = _loanService.GetAllLoans(dateTimeRange)
+                                       .Where(i => i.TransactionId == transactionId)
+                                       .FirstOrDefault();
+                var installments = _installmentService.GetInstallmentsByInitialInvoiceNumber(initialInvoiceNumber);
+
+                if (loan != null)
+                {
+                   loan.AmountPaid = installments.Sum(i => i.AmountPaid);   
+                    loan.OutstandingAmount = loan.Transaction.TotalAmount - loan.AmountPaid;
+
+                    // Update directly without transaction wrapper
+                    _dbContext.Update<Loan>(loan);
+                    _dbContext.Save();
+
+                    return loan;
+                }
+            }
+            return null;
+        }
 
         public Loan UpdateInitialLoan(string initialInvoiceNumber,decimal installmentPaid)
         {
@@ -624,14 +858,13 @@ namespace SMS.Business
 
         public IEnumerable<GetInvoiceDTO> GetInvoicesByCustomer(Customer customer)
         {
-            var invoices = _invoiceService.GetInvoicesByCustomerId(customer.CustomerId);
-
-            var initialLoan = _loanService.GetLoansByCustomerId(customer.CustomerId);
+            var invoices = _invoiceService.GetInvoicesByCustomerId(customer.CustomerId).ToList();
+            var initialLoan = _loanService.GetLoansByCustomerId(customer.CustomerId).ToList();
 
             var invoiceDTOs = invoices.Select(invoice => new GetInvoiceDTO
             {
                 InvoiceId = invoice.InvoiceId,
-                InvoiceTypeId = invoice.InvoiceTypeId,
+                InvoiceTypeId = (int)invoice.InvoiceTypeId,
                 InvoiceNo = invoice.InvoiceNo,
                 TransactionId = invoice.TransactionId,
                 CustomerNIC = customer.CustomerNIC,
@@ -641,8 +874,9 @@ namespace SMS.Business
                 TotalAmount = invoice.Transaction.TotalAmount,
                 DateGenerated = invoice.DateGenerated,
                 Status = invoice.Status,
-                LoanPeriod = invoice.InvoiceTypeId==InvoiceType.InitialPawnInvoice ?  initialLoan.Where(t => t.TransactionId == invoice.TransactionId).FirstOrDefault()?.LoanPeriod.Period: null,
-
+                LoanPeriod = invoice.InvoiceTypeId == InvoiceType.InitialPawnInvoice ? 
+                    initialLoan.Where(t => t.TransactionId == invoice.TransactionId)
+                              .FirstOrDefault()?.LoanPeriod?.Period : null,
             });
 
             return invoiceDTOs;
