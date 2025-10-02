@@ -1,0 +1,38 @@
+trigger:
+  branches:
+    include:
+      - unit-testing-implementation   # or master depending on your repo
+
+pool:
+  vmImage: 'windows-latest'
+
+variables:
+  buildConfiguration: 'Release'
+
+steps:
+# 1. Restore dependencies
+- task: UseDotNet@2
+  inputs:
+    packageType: 'sdk'
+    version: '9.0.x'
+    installationPath: $(Agent.ToolsDirectory)/dotnet
+
+- script: dotnet restore
+  displayName: 'Restore dependencies'
+
+# 2. Build solution
+- script: dotnet build --configuration $(buildConfiguration) --no-restore
+  displayName: 'Build'
+
+# 3. Run tests
+- script: dotnet test --no-build --verbosity normal
+  displayName: 'Run unit tests'
+
+# 4. Publish artifact
+- script: dotnet publish ./SMS-API/SMS-API.csproj -c $(buildConfiguration) -o $(Build.ArtifactStagingDirectory)
+  displayName: 'Publish API'
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    pathToPublish: '$(Build.ArtifactStagingDirectory)'
+    artifactName: 'drop'
