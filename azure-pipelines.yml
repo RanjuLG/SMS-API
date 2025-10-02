@@ -1,7 +1,7 @@
 trigger:
   branches:
     include:
-      - unit-testing-implementation   # or master depending on your repo
+      - main   # or master depending on your repo
 
 pool:
   vmImage: 'windows-latest'
