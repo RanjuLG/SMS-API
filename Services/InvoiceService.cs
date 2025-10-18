@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using SMS.Enums;
 using SMS.Interfaces;
 using SMS.Models;
-using SMS.Models.DTO.SMS.Models.DTO;
+using SMS.Models.DTO;
 using SMS.Repositories;
 
 namespace SMS.Services
@@ -63,14 +63,14 @@ namespace SMS.Services
                 var invoice = new GetInvoiceDTO
                 {
                     InvoiceId = invoice_.InvoiceId,
-                    InvoiceTypeId = invoice_.InvoiceTypeId,
+                    InvoiceTypeId = (int)invoice_.InvoiceTypeId,
                     InvoiceNo = invoice_.InvoiceNo,
                     TransactionId = transaction.TransactionId,
                     CustomerNIC = transaction.Customer?.CustomerNIC,
                     TotalAmount = transaction.TotalAmount,
                     DateGenerated = invoice_.DateGenerated,
                     Status = invoice_.Status,
-                   LoanPeriod = invoice_.InvoiceTypeId == InvoiceType.InitialPawnInvoice ? loans.Where(t => t.TransactionId == invoice_.TransactionId).FirstOrDefault()?.LoanPeriod.Period : null,
+                   LoanPeriod = (int)invoice_.InvoiceTypeId == (int)InvoiceType.InitialPawnInvoice ? loans.Where(t => t.TransactionId == invoice_.TransactionId).FirstOrDefault()?.LoanPeriod?.Period : null,
                 };
 
                 invoices.Add(invoice);
@@ -91,11 +91,11 @@ namespace SMS.Services
             var invoice = new GetInvoiceDTO
             {
                 InvoiceId = invoice_.InvoiceId,
-                InvoiceTypeId = invoice_.InvoiceTypeId,
+                InvoiceTypeId = (int)invoice_.InvoiceTypeId,
                 InvoiceNo = invoice_.InvoiceNo,
-                TransactionId = transaction?.TransactionId,
+                TransactionId = transaction?.TransactionId ?? 0,
                 CustomerNIC = transaction?.Customer?.CustomerNIC,
-                TotalAmount = transaction?.TotalAmount,
+                TotalAmount = transaction?.TotalAmount ?? 0,
                 DateGenerated = invoice_.DateGenerated,
                 Status = invoice_.Status,
                //LoanPeriod = transaction.LoanPeriod?.Period // Map LoanPeriod
@@ -107,15 +107,39 @@ namespace SMS.Services
 
         public void CreateInvoice(Invoice invoice)
         {
-            _dbContext.Create(invoice);
-            _dbContext.Save();
+            using (var dbTransaction = _dbContext.CreateTransaction())
+            {
+                try
+                {
+                    _dbContext.Create(invoice);
+                    _dbContext.Save();
+                    _dbContext.CommitTransaction();
+                }
+                catch (Exception)
+                {
+                    _dbContext.RollbackTransaction();
+                    throw;
+                }
+            }
         }
 
         public void UpdateInvoice(Invoice invoice)
         {
-            invoice.UpdatedAt = DateTime.Now;
-            _dbContext.Update(invoice);
-            _dbContext.Save();
+            using (var dbTransaction = _dbContext.CreateTransaction())
+            {
+                try
+                {
+                    invoice.UpdatedAt = DateTime.Now;
+                    _dbContext.Update(invoice);
+                    _dbContext.Save();
+                    _dbContext.CommitTransaction();
+                }
+                catch (Exception)
+                {
+                    _dbContext.RollbackTransaction();
+                    throw;
+                }
+            }
         }
 
         public void DeleteInvoice(int invoiceId)
@@ -133,29 +157,30 @@ namespace SMS.Services
                 return;
             }
 
-            try
+            using (var dbTransaction = _dbContext.CreateTransaction())
             {
-                _dbContext.CreateTransaction(); // Start transaction
-
-                if (invoice.InvoiceTypeId == InvoiceType.InitialPawnInvoice)
+                try
                 {
-                    if (DeleteInitialInvoice(invoice))
+                    if (invoice.InvoiceTypeId == InvoiceType.InitialPawnInvoice)
                     {
-                        _logger.LogInformation($"Invoice {invoiceId} deleted successfully.");
+                        if (DeleteInitialInvoice(invoice))
+                        {
+                            _logger.LogInformation($"Invoice {invoiceId} deleted successfully.");
+                        }
+                        else
+                        {
+                            _logger.LogWarning($"Failed to delete invoice {invoiceId}.");
+                        }
                     }
-                    else
-                    {
-                        _logger.LogWarning($"Failed to delete invoice {invoiceId}.");
-                    }
-                }
 
-                _dbContext.CommitTransaction(); // Commit transaction
-            }
-            catch (Exception ex)
-            {
-                _dbContext.RollbackTransaction(); // Rollback transaction in case of error
-                _logger.LogError(ex, $"Error while deleting invoice {invoiceId}");
-                throw;
+                    _dbContext.CommitTransaction(); // Commit transaction
+                }
+                catch (Exception ex)
+                {
+                    _dbContext.RollbackTransaction(); // Rollback transaction in case of error
+                    _logger.LogError(ex, $"Error while deleting invoice {invoiceId}");
+                    throw;
+                }
             }
         }
 
@@ -173,7 +198,7 @@ namespace SMS.Services
 
             try
             {
-                // Delete Transaction Items
+                // Delete Transaction Items - use direct service calls without transactions
                 var transactionItems = _transactionItemService
                     .GetTransactionItemsByTransactionId(transaction.TransactionId)
                     .Select(t => t.TransactionItemId)
@@ -181,14 +206,14 @@ namespace SMS.Services
 
                 if (transactionItems.Any())
                 {
-                    _transactionItemService.DeleteTransactionItems(transactionItems);
+                    DeleteTransactionItemsWithoutTransaction(transactionItems);
                 }
 
-                // Delete Loan
+                // Delete Loan - use direct repository call
                 var loan = _loanService.GetLoanByInitialInvoiceNumber(initialInvoice.InvoiceNo);
                 if (loan != null)
                 {
-                    _loanService.DeleteLoan(loan.LoanId);
+                    DeleteLoanWithoutTransaction(loan.LoanId);
                 }
 
                 // Delete Installments and related data
@@ -198,20 +223,20 @@ namespace SMS.Services
 
                 if (installments.Any())
                 {
-                    _installmentService.DeleteInstallments(installments.Select(i => i.InstallmentId));
+                    DeleteInstallmentsWithoutTransaction(installments.Select(i => i.InstallmentId));
 
                     var installmentTransactions = installments.Select(i => i.TransactionId).ToList();
                     var installmentInvoices = _dbContext
                         .Get<Invoice>(i => i.DeletedAt == null && installmentTransactions.Contains(i.TransactionId))
                         .ToList();
 
-                    DeleteInvoices(installmentInvoices.Select(i => i.InvoiceId));
-                    _transactionService.DeleteTransactions(installmentTransactions);
+                    DeleteInvoicesWithoutTransaction(installmentInvoices.Select(i => i.InvoiceId));
+                    DeleteTransactionsWithoutTransaction(installmentTransactions);
                 }
 
                 // Mark invoice and transaction as deleted
-                initialInvoice.DeletedAt = DateTime.UtcNow;
-                transaction.DeletedAt = DateTime.UtcNow;
+                initialInvoice.DeletedAt = DateTime.Now;
+                transaction.DeletedAt = DateTime.Now;
                 _dbContext.Update(initialInvoice);
                 _dbContext.Update(transaction);
                 _dbContext.Save();
@@ -225,6 +250,61 @@ namespace SMS.Services
             }
 
             return isDeleted;
+        }
+
+        private void DeleteTransactionItemsWithoutTransaction(IEnumerable<int> transactionItemIds)
+        {
+            var transactionItems = _dbContext.Get<TransactionItem>(t => transactionItemIds.Contains(t.TransactionItemId) && t.DeletedAt == null).ToList();
+            foreach (var transactionItem in transactionItems)
+            {
+                transactionItem.DeletedAt = DateTime.Now;
+                _dbContext.Update(transactionItem);
+            }
+            _dbContext.Save();
+        }
+
+        private void DeleteLoanWithoutTransaction(int loanId)
+        {
+            var loan = _dbContext.GetById<Loan>(loanId);
+            if (loan != null)
+            {
+                loan.DeletedAt = DateTime.Now;
+                _dbContext.Update(loan);
+                _dbContext.Save();
+            }
+        }
+
+        private void DeleteInstallmentsWithoutTransaction(IEnumerable<int> installmentIds)
+        {
+            var installments = _dbContext.Get<Installment>(i => installmentIds.Contains(i.InstallmentId) && i.DeletedAt == null).ToList();
+            foreach (var installment in installments)
+            {
+                installment.DeletedAt = DateTime.Now;
+                _dbContext.Update(installment);
+            }
+            _dbContext.Save();
+        }
+
+        private void DeleteInvoicesWithoutTransaction(IEnumerable<int> invoiceIds)
+        {
+            var invoices = _dbContext.Get<Invoice>(i => invoiceIds.Contains(i.InvoiceId) && i.DeletedAt == null).ToList();
+            foreach (var invoice in invoices)
+            {
+                invoice.DeletedAt = DateTime.Now;
+                _dbContext.Update(invoice);
+            }
+            _dbContext.Save();
+        }
+
+        private void DeleteTransactionsWithoutTransaction(IEnumerable<int> transactionIds)
+        {
+            var transactions = _dbContext.Get<Transaction>(t => transactionIds.Contains(t.TransactionId) && t.DeletedAt == null).ToList();
+            foreach (var transaction in transactions)
+            {
+                transaction.DeletedAt = DateTime.Now;
+                _dbContext.Update(transaction);
+            }
+            _dbContext.Save();
         }
 
         public void DeleteInvoices(IEnumerable<int> invoiceIds)

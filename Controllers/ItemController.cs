@@ -16,12 +16,14 @@ namespace SMS.Controllers
         private readonly IItemService _ItemService;
         private readonly IMapper _mapper;
         private readonly ICustomerService _customerService;
+        private readonly IPaginationService _paginationService;
 
-        public ItemController(IItemService ItemService, IMapper mapper,ICustomerService customerService)
+        public ItemController(IItemService ItemService, IMapper mapper, ICustomerService customerService, IPaginationService paginationService)
         {
             _ItemService = ItemService;
             _mapper = mapper;
             _customerService = customerService;
+            _paginationService = paginationService;
         }
 
         [HttpGet]
@@ -34,6 +36,9 @@ namespace SMS.Controllers
                 var itemsDTO = items.Select(item => new GetItemDTO
                 {
                     ItemId = item.ItemId,
+                    CustomerId = item.CustomerId ?? 0,
+                    CustomerName = item.Customer?.CustomerName,
+                    CustomerNIC = item.Customer?.CustomerNIC,
                     ItemDescription = item.ItemDescription,
                     ItemRemarks = item.ItemRemarks,
                     ItemCaratage = item.ItemCaratage,
@@ -41,15 +46,140 @@ namespace SMS.Controllers
                     ItemGoldWeight = item.ItemGoldWeight,
                     ItemValue = item.ItemValue,
                     Status = item.Status,
-                    CreatedAt = item.CreatedAt,
-                    CustomerNIC = item.Customer != null ? item.Customer.CustomerNIC : null // Assuming Customer has an NIC property
+                    CreatedAt = item.CreatedAt
                 }).ToList();
 
                 return Ok(itemsDTO);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Log the exception (you can use a logging framework for this)
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        [HttpGet]
+        [Route("paginated")]
+        public async Task<ActionResult<PaginatedResponse<GetItemDTO>>> GetItemsPaginated(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? search = null,
+            [FromQuery] string? sortBy = null,
+            [FromQuery] string? sortOrder = "desc",
+            [FromQuery] DateTime? from = null,
+            [FromQuery] DateTime? to = null,
+            [FromQuery] string? customerNIC = null,
+            [FromQuery] decimal? minValue = null,
+            [FromQuery] decimal? maxValue = null)
+        {
+            try
+            {
+                var request = new ItemSearchRequest
+                {
+                    Page = page,
+                    PageSize = pageSize,
+                    Search = search,
+                    SortBy = sortBy,
+                    SortOrder = sortOrder,
+                    From = from,
+                    To = to,
+                    CustomerNIC = customerNIC,
+                    MinValue = minValue,
+                    MaxValue = maxValue
+                };
+
+                // Get queryable items
+                var itemsQuery = _ItemService.GetItemsQueryable(request);
+
+                // Project to DTO
+                var itemsDTOQuery = itemsQuery.Select(item => new GetItemDTO
+                {
+                    ItemId = item.ItemId,
+                    CustomerId = item.CustomerId ?? 0,
+                    CustomerName = item.Customer != null ? item.Customer.CustomerName : null,
+                    CustomerNIC = item.Customer != null ? item.Customer.CustomerNIC : null,
+                    ItemDescription = item.ItemDescription,
+                    ItemRemarks = item.ItemRemarks,
+                    ItemCaratage = item.ItemCaratage,
+                    ItemWeight = item.ItemWeight,
+                    ItemGoldWeight = item.ItemGoldWeight,
+                    ItemValue = item.ItemValue,
+                    Status = item.Status,
+                    CreatedAt = item.CreatedAt
+                });
+
+                // Create applied filters object for metadata
+                var appliedFilters = new
+                {
+                    customerNIC,
+                    minValue,
+                    maxValue,
+                    DateRange = from.HasValue || to.HasValue 
+                        ? new { From = from, To = to } 
+                        : null
+                };
+
+                // Create paginated response
+                var paginatedResponse = await _paginationService.CreatePaginatedResponseAsync(
+                    itemsDTOQuery, 
+                    request, 
+                    appliedFilters);
+
+                return Ok(paginatedResponse);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        [HttpPost]
+        [Route("search")]
+        public async Task<ActionResult<PaginatedResponse<GetItemDTO>>> SearchItems([FromBody] ItemSearchRequest request)
+        {
+            try
+            {
+                // Get queryable items
+                var itemsQuery = _ItemService.GetItemsQueryable(request);
+
+                // Project to DTO
+                var itemsDTOQuery = itemsQuery.Select(item => new GetItemDTO
+                {
+                    ItemId = item.ItemId,
+                    CustomerId = item.CustomerId ?? 0,
+                    CustomerName = item.Customer != null ? item.Customer.CustomerName : null,
+                    CustomerNIC = item.Customer != null ? item.Customer.CustomerNIC : null,
+                    ItemDescription = item.ItemDescription,
+                    ItemRemarks = item.ItemRemarks,
+                    ItemCaratage = item.ItemCaratage,
+                    ItemWeight = item.ItemWeight,
+                    ItemGoldWeight = item.ItemGoldWeight,
+                    ItemValue = item.ItemValue,
+                    Status = item.Status,
+                    CreatedAt = item.CreatedAt
+                });
+
+                // Create applied filters object for metadata
+                var appliedFilters = new
+                {
+                    request.CustomerNIC,
+                    request.MinValue,
+                    request.MaxValue,
+                    DateRange = request.From.HasValue || request.To.HasValue 
+                        ? new { request.From, request.To } 
+                        : null
+                };
+
+                // Create paginated response
+                var paginatedResponse = await _paginationService.CreatePaginatedResponseAsync(
+                    itemsDTOQuery, 
+                    request, 
+                    appliedFilters);
+
+                return Ok(paginatedResponse);
+            }
+            catch (Exception)
+            {
                 return StatusCode(500, "Internal server error");
             }
         }
@@ -72,6 +202,9 @@ namespace SMS.Controllers
                 var ItemDTO = new GetItemDTO 
                 {
                     ItemId = item.ItemId,
+                    CustomerId = item.CustomerId ?? 0,
+                    CustomerName = item.Customer?.CustomerName,
+                    CustomerNIC = item.Customer?.CustomerNIC,
                     ItemDescription = item.ItemDescription,
                     ItemRemarks = item.ItemRemarks,
                     ItemCaratage = item.ItemCaratage,
@@ -79,14 +212,11 @@ namespace SMS.Controllers
                     ItemGoldWeight = item.ItemGoldWeight,
                     ItemValue = item.ItemValue,
                     Status = item.Status,
-                    CreatedAt = item.CreatedAt,
-                    CustomerNIC = item.Customer != null ? item.Customer.CustomerNIC : null
-
-
+                    CreatedAt = item.CreatedAt
                 };
                 return Ok(ItemDTO);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Log the exception (you can use a logging framework for this)
                 return StatusCode(500, "Internal server error");
@@ -99,11 +229,16 @@ namespace SMS.Controllers
         {
             try
             {
+                if (string.IsNullOrWhiteSpace(request.CustomerNIC))
+                {
+                    return BadRequest("Customer NIC is required.");
+                }
+
                 var isCustomerExists = _customerService.GetCustomerByNIC(request.CustomerNIC);
 
                 if (isCustomerExists == null)
                 {
-                    return NotFound();
+                    return NotFound("Customer not found.");
                 }
 
                 var Item = new Item
@@ -125,7 +260,7 @@ namespace SMS.Controllers
 
                 return Ok();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Log the exception (you can use a logging framework for this)
                 return StatusCode(500, "Internal server error");
@@ -142,6 +277,11 @@ namespace SMS.Controllers
                 if (existingItem == null)
                 {
                     return NotFound();
+                }
+
+                if (string.IsNullOrWhiteSpace(request.CustomerNIC))
+                {
+                    return BadRequest("Customer NIC is required.");
                 }
 
                 // Fetch the customer by NIC
@@ -167,7 +307,7 @@ namespace SMS.Controllers
 
                 return Ok();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Log the exception (you can use a logging framework for this)
                 return StatusCode(500, "Internal server error");
@@ -191,7 +331,7 @@ namespace SMS.Controllers
 
                 return Ok();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Log the exception (you can use a logging framework for this)
                 return StatusCode(500, "Internal server error");
@@ -225,6 +365,9 @@ namespace SMS.Controllers
                 var itemsDTO = items.Select(item => new GetItemDTO
                 {
                     ItemId = item.ItemId,
+                    CustomerId = item.CustomerId ?? 0,
+                    CustomerName = item.Customer?.CustomerName,
+                    CustomerNIC = item.Customer?.CustomerNIC,
                     ItemDescription = item.ItemDescription,
                     ItemRemarks = item.ItemRemarks,
                     ItemCaratage = item.ItemCaratage,
@@ -232,13 +375,12 @@ namespace SMS.Controllers
                     ItemGoldWeight = item.ItemGoldWeight,
                     ItemValue = item.ItemValue,
                     Status = item.Status,
-                    CreatedAt = item.CreatedAt,
-                    CustomerNIC = item.Customer != null ? item.Customer.CustomerNIC : null // Assuming Customer has an NIC property
+                    CreatedAt = item.CreatedAt
                 }).ToList();
 
                 return Ok(itemsDTO);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Log the exception
                 return StatusCode(500, "Internal server error");

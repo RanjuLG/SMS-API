@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SMS.Interfaces;
 using SMS.Models;
@@ -10,6 +11,7 @@ namespace SMS.Controllers
 {
     [Route("api/karatage")]
     [ApiController]
+    [Authorize]
     public class KaratageController : ControllerBase
     {
         private readonly IKaratageService _karatageService;

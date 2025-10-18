@@ -1,7 +1,7 @@
 ﻿using AutoMapper;
 using SMS.Models;
 using SMS.Models.DTO;
-using SMS.Models.DTO.SMS.Models.DTO;
+using System.Linq;
 
 namespace SMS
 {
@@ -9,90 +9,65 @@ namespace SMS
     {
         public MappingProfile()
         {
-            // Mapping for Customer
+            // Customer mappings
             CreateMap<Customer, GetCustomerDTO>();
-            CreateMap<GetCustomerDTO, Customer>();
-
-            CreateMap<Customer, CreateCustomerDTO>();
             CreateMap<CreateCustomerDTO, Customer>();
+            CreateMap<UpdateCustomerDTO, Customer>();
+            CreateMap<Customer, CreateCustomerDTO>();
 
-            // Mapping for Item
-            CreateMap<Item, GetItemDTO>();
-            CreateMap<GetItemDTO, Item>();
-            CreateMap<Item, CreateItemDTO>();
-            CreateMap<CreateItemDTO, Item>();
-
-            CreateMap<Item, UpdateItemDTO>();
-            CreateMap<UpdateItemDTO, Item>();
+            // Item mappings
             CreateMap<Item, GetItemDTO>()
-             .ForMember(dest => dest.CustomerNIC, opt => opt.MapFrom(src => src.Customer.CustomerNIC));
-            CreateMap<GetItemDTO, Item>();
+                .ForMember(dest => dest.CustomerNIC, opt => opt.MapFrom(src => src.Customer.CustomerNIC))
+                .ForMember(dest => dest.CustomerName, opt => opt.MapFrom(src => src.Customer.CustomerName));
+            CreateMap<CreateItemDTO, Item>()
+                .ForMember(dest => dest.ItemId, opt => opt.Ignore())
+                .ForMember(dest => dest.Status, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
+            CreateMap<UpdateItemDTO, Item>();
 
-
-
-
-            // Mapping for Invoice
-            CreateMap<Invoice, CreateInvoiceDTO>();
-            CreateMap<CreateInvoiceDTO, Invoice>();
-
-            CreateMap<Invoice, GetInvoiceDTO>()
-                .ForMember(dest => dest.CustomerNIC, opt => opt.MapFrom(src => src.Transaction.Customer.CustomerNIC)); ;
-            CreateMap<GetInvoiceDTO, Invoice>();
+            // Transaction mappings
+            CreateMap<Transaction, GetTransactionDTO>()
+                .ForMember(dest => dest.CustomerName, opt => opt.MapFrom(src => src.Customer.CustomerName))
+                .ForMember(dest => dest.CustomerNIC, opt => opt.MapFrom(src => src.Customer.CustomerNIC))
+                .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.TransactionItems));
+            CreateMap<CreateTransactionDTO, Transaction>();
             
+            // TransactionDTO mapping for legacy support
+            CreateMap<Transaction, TransactionDTO>()
+                .ForMember(dest => dest.Customer, opt => opt.MapFrom(src => src.Customer))
+                .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.TransactionItems.Select(ti => ti.Item).ToList()));
 
-            CreateMap<Invoice, InvoiceDTO>();
-            CreateMap<InvoiceDTO, Invoice>();
+            // TransactionItem mappings
+            CreateMap<TransactionItem, TransactionItemDTO>()
+                .ForMember(dest => dest.ItemDescription, opt => opt.MapFrom(src => src.Item.ItemDescription));
 
-            CreateMap<Invoice, UpdateInvoiceDTO>();
+            // Invoice mappings
+            CreateMap<Invoice, GetInvoiceDTO>()
+                .ForMember(dest => dest.CustomerNIC, opt => opt.MapFrom(src => src.Transaction.Customer.CustomerNIC))
+                .ForMember(dest => dest.CustomerName, opt => opt.MapFrom(src => src.Transaction.Customer.CustomerName))
+                .ForMember(dest => dest.TotalAmount, opt => opt.MapFrom(src => src.Transaction.TotalAmount));
+            CreateMap<CreateInvoiceDTO, Invoice>();
             CreateMap<UpdateInvoiceDTO, Invoice>();
 
-            //Mapping for Transactions
-          
+            // Karatage mappings
+            CreateMap<Karat, GetKaratDTO>();
+            CreateMap<CreateKaratDTO, Karat>();
+            CreateMap<UpdateKaratDTO, Karat>();
 
-            CreateMap<TransactionDTO, Transaction>();
+            // Loan Period mappings
+            CreateMap<LoanPeriod, GetLoanPeriodDTO>();
+            CreateMap<CreateLoanPeriodDTO, LoanPeriod>();
+            CreateMap<UpdateLoanPeriodDTO, LoanPeriod>();
 
-            CreateMap<Transaction, CreateTransactionDTO>();
-            CreateMap<CreateTransactionDTO, Transaction>();
+            // Pricing mappings
+            CreateMap<Pricing, GetPricingDTO>();
+            CreateMap<CreatePricingDTO, Pricing>();
+            CreateMap<UpdatePricingDTO, Pricing>();
 
-            CreateMap<Transaction, UpdateTransactionDTO>();
-            CreateMap<UpdateTransactionDTO, Transaction>();
-
-            CreateMap<Customer, CommonCustomerDTO>();
-            CreateMap<Item, CommonItemDTO>();
-
-            CreateMap<Transaction, TransactionDTO>()
-            .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.TransactionItems.Select(ti => ti.Item)))
-            .ForMember(dest => dest.Customer, opt => opt.MapFrom(src => src.Customer));
-            CreateMap<Transaction, TransactionDTO>()
-                        .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.TransactionItems.Select(ti => ti.Item)))
-                        .ForMember(dest => dest.Customer, opt => opt.MapFrom(src => src.Customer));
-
-            CreateMap<CreateTransactionDTO, Transaction>()
-                .ForMember(dest => dest.TransactionItems, opt => opt.MapFrom((src, dest, destMember, context) =>
-                    src.Items.Select(i => new TransactionItem { Item = context.Mapper.Map<Item>(i) })));
-
-            CreateMap<UpdateTransactionDTO, Transaction>();
-
-            CreateMap<Item, GetItemDTO>();
-            CreateMap<Customer, GetCustomerDTO>();
-
-            CreateMap<CreateItemDTO, Item>()
-                .ForMember(dest => dest.ItemId, opt => opt.Ignore()) // Assuming ItemId is auto-generated
-                .ForMember(dest => dest.Status, opt => opt.Ignore()) // Assuming Status is set elsewhere
-                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
-                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
-                .ForMember(dest => dest.CustomerId, opt => opt.Ignore());
-
-
-            // Mapping for Installment
+            // Installment mappings
             CreateMap<Installment, GetInstallmentDTO>();
-            CreateMap<GetInstallmentDTO, Installment>();
-
-            CreateMap<Installment, CreateInstallmentDTO>();
             CreateMap<CreateInstallmentDTO, Installment>();
-
-        
-               
         }
     }
 }

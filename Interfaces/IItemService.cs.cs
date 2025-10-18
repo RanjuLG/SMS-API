@@ -1,4 +1,5 @@
 ﻿using SMS.Models;
+using SMS.Models.DTO;
 using System.Collections.Generic;
 
 namespace SMS.Interfaces
@@ -6,7 +7,8 @@ namespace SMS.Interfaces
     public interface IItemService
     {
         IList<Item> GetAllItems(IDateTimeRange dateTimeRange);
-        Item GetItemById(int itemId);
+        IQueryable<Item> GetItemsQueryable(ItemSearchRequest request);
+        Item? GetItemById(int itemId);
         void CreateItem(Item item);
         void UpdateItem(Item item);
         void DeleteItem(int itemId);

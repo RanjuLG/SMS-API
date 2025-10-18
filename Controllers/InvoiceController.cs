@@ -7,7 +7,6 @@ using SMS.Generic;
 using SMS.Interfaces;
 using SMS.Models;
 using SMS.Models.DTO;
-using SMS.Models.DTO.SMS.Models.DTO;
 using SMS.Services;
 
 namespace SMS.Controllers
