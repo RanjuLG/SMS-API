@@ -8,6 +8,7 @@ using SMS.Interfaces;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Serilog;
 
 namespace SMS.Controllers
 {
@@ -36,78 +37,115 @@ namespace SMS.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] LoginRequest model)
         {
-            var user = await _userManager.FindByNameAsync(model.Username);
-            if (user != null && await _userManager.CheckPasswordAsync(user, model.Password))
+            try
             {
-                var token = await GenerateJwtToken(user);
-                var expiration = DateTime.Now.AddHours(1);
+                Log.Information("Login attempt for username: {Username}", model.Username);
                 
-                return Ok(new LoginResponse { Token = token, Expiration = expiration });
-            }
+                var user = await _userManager.FindByNameAsync(model.Username);
+                if (user != null && await _userManager.CheckPasswordAsync(user, model.Password))
+                {
+                    var token = await GenerateJwtToken(user);
+                    var expiration = DateTime.Now.AddHours(1);
+                    
+                    Log.Information("User {Username} logged in successfully", model.Username);
+                    return Ok(new LoginResponse { Token = token, Expiration = expiration });
+                }
 
-            return Unauthorized(new { message = "Invalid username or password" });
+                Log.Warning("Failed login attempt for username: {Username}", model.Username);
+                return Unauthorized(new { message = "Invalid username or password" });
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error during login for username: {Username}", model.Username);
+                return StatusCode(500, new { message = "An error occurred during login" });
+            }
         }
 
         [HttpPost("register")]
         [AllowAnonymous]
         public async Task<IActionResult> Register([FromBody] RegisterRequest model, [FromQuery] string token)
         {
-            if (string.IsNullOrEmpty(token))
+            try
             {
-                return Unauthorized(new { message = "Token is missing." });
-            }
-
-            // Parse the token to get the user ID
-            var handler = new JwtSecurityTokenHandler();
-            var jwtToken = handler.ReadToken(token) as JwtSecurityToken;
-
-            if (jwtToken == null)
-            {
-                return Unauthorized(new { message = "Invalid token." });
-            }
-
-            // Extract the user ID from the token claims
-            var userIdClaim = jwtToken.Claims.FirstOrDefault(claim => claim.Type == ClaimTypes.NameIdentifier);
-
-            if (userIdClaim == null)
-            {
-                return Unauthorized(new { message = "Token does not contain a valid user ID." });
-            }
-
-            var userId = userIdClaim.Value;
-
-            // Get the current user from the database
-            var currentUser = await _userManager.FindByIdAsync(userId);
-
-            if (currentUser != null)
-            {
-                var roles = await _userManager.GetRolesAsync(currentUser);
-
-                // Allow SuperAdmin and Admin to register users
-                if (!roles.Contains("SuperAdmin") && !roles.Contains("Admin"))
+                if (string.IsNullOrEmpty(token))
                 {
-                    return Forbid("You are not authorized to register users.");
+                    Log.Warning("Registration attempt without token for username: {Username}", model.Username);
+                    return Unauthorized(new { message = "Token is missing." });
                 }
-            }
-            else
-            {
-                return Unauthorized(new { message = "You must be logged in as an Admin or SuperAdmin to register new users." });
-            }
 
-            // Proceed with user registration
-            var user = new ApplicationUser { UserName = model.Username, Email = model.Email };
-            var result = await _userManager.CreateAsync(user, model.Password);
+                // Parse the token to get the user ID
+                var handler = new JwtSecurityTokenHandler();
+                var jwtToken = handler.ReadToken(token) as JwtSecurityToken;
 
-            if (result.Succeeded)
-            {
-                if (model.Roles.Any())
+                if (jwtToken == null)
                 {
-                    await _userManager.AddToRoleAsync(user, model.Roles[0]);
+                    Log.Warning("Registration attempt with invalid token for username: {Username}", model.Username);
+                    return Unauthorized(new { message = "Invalid token." });
                 }
-                return Ok(new { message = "User created successfully" });
-            }
 
-            return BadRequest(new { message = "Failed to create user", errors = result.Errors });
+                // Extract the user ID from the token claims
+                var userIdClaim = jwtToken.Claims.FirstOrDefault(claim => claim.Type == ClaimTypes.NameIdentifier);
+
+                if (userIdClaim == null)
+                {
+                    Log.Warning("Registration attempt with token missing user ID for username: {Username}", model.Username);
+                    return Unauthorized(new { message = "Token does not contain a valid user ID." });
+                }
+
+                var userId = userIdClaim.Value;
+
+                // Get the current user from the database
+                var currentUser = await _userManager.FindByIdAsync(userId);
+
+                if (currentUser != null)
+                {
+                    var roles = await _userManager.GetRolesAsync(currentUser);
+
+                    // Allow SuperAdmin and Admin to register users
+                    if (!roles.Contains("SuperAdmin") && !roles.Contains("Admin"))
+                    {
+                        Log.Warning("Unauthorized registration attempt by user {CurrentUser} for username: {NewUsername}", 
+                            currentUser.UserName, model.Username);
+                        return Forbid("You are not authorized to register users.");
+                    }
+                }
+                else
+                {
+                    Log.Warning("Registration attempt with non-existent user ID from token for username: {Username}", model.Username);
+                    return Unauthorized(new { message = "You must be logged in as an Admin or SuperAdmin to register new users." });
+                }
+
+                // Proceed with user registration
+                Log.Information("Creating new user {Username} by {RegisteredBy}", model.Username, currentUser?.UserName);
+                
+                var user = new ApplicationUser { UserName = model.Username, Email = model.Email };
+                var result = await _userManager.CreateAsync(user, model.Password);
+
+                if (result.Succeeded)
+                {
+                    if (model.Roles.Any())
+                    {
+                        await _userManager.AddToRoleAsync(user, model.Roles[0]);
+                        Log.Information("User {Username} created successfully with role {Role} by {RegisteredBy}", 
+                            model.Username, model.Roles[0], currentUser?.UserName);
+                    }
+                    else
+                    {
+                        Log.Information("User {Username} created successfully (no role assigned) by {RegisteredBy}", 
+                            model.Username, currentUser?.UserName);
+                    }
+                    return Ok(new { message = "User created successfully" });
+                }
+
+                Log.Warning("Failed to create user {Username}. Errors: {Errors}", 
+                    model.Username, string.Join(", ", result.Errors.Select(e => e.Description)));
+                return BadRequest(new { message = "Failed to create user", errors = result.Errors });
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error during user registration for username: {Username}", model.Username);
+                return StatusCode(500, new { message = "An error occurred during user registration" });
+            }
         }
 
         [HttpGet("users")]
@@ -116,6 +154,9 @@ namespace SMS.Controllers
         {
             try
             {
+                Log.Information("Fetching users with search: {Search}, role: {Role}, page: {Page}", 
+                    request.Search, request.Role, request.Page);
+                
                 var usersQuery = _userManager.Users.AsQueryable();
 
                 // Apply search
@@ -165,10 +206,12 @@ namespace SMS.Controllers
                     Filters = filters
                 };
 
+                Log.Information("Retrieved {Count} users (total: {Total})", userDTOs.Count, totalUsers);
                 return Ok(response);
             }
             catch (Exception ex)
             {
+                Log.Error(ex, "Error fetching users");
                 return StatusCode(500, new { message = "Internal server error", details = ex.Message });
             }
         }
@@ -177,33 +220,59 @@ namespace SMS.Controllers
         [Authorize(Policy = "UserManagementPolicy")] // SuperAdmin and Admin can update users
         public async Task<IActionResult> UpdateUser(string userId, [FromBody] UpdateUserDTO userDto)
         {
-            var user = await _userManager.FindByIdAsync(userId);
+            try
+            {
+                Log.Information("Updating user {UserId} to username: {Username}", userId, userDto.Username);
+                
+                var user = await _userManager.FindByIdAsync(userId);
 
-            if (user == null)
-                return NotFound(new { message = "User not found" });
+                if (user == null)
+                {
+                    Log.Warning("Attempted to update non-existent user {UserId}", userId);
+                    return NotFound(new { message = "User not found" });
+                }
 
-            // Update user's name and email
-            user.UserName = userDto.Username;
-            user.Email = userDto.Email;
+                // Update user's name and email
+                user.UserName = userDto.Username;
+                user.Email = userDto.Email;
 
-            var updateResult = await _userManager.UpdateAsync(user);
-            if (!updateResult.Succeeded)
-                return BadRequest(new { message = "Failed to update user", errors = updateResult.Errors });
+                var updateResult = await _userManager.UpdateAsync(user);
+                if (!updateResult.Succeeded)
+                {
+                    Log.Warning("Failed to update user {UserId}. Errors: {Errors}", 
+                        userId, string.Join(", ", updateResult.Errors.Select(e => e.Description)));
+                    return BadRequest(new { message = "Failed to update user", errors = updateResult.Errors });
+                }
 
-            // Update user's roles
-            var currentRoles = await _userManager.GetRolesAsync(user);
-            var rolesToAdd = userDto.Roles.Except(currentRoles);
-            var rolesToRemove = currentRoles.Except(userDto.Roles);
+                // Update user's roles
+                var currentRoles = await _userManager.GetRolesAsync(user);
+                var rolesToAdd = userDto.Roles.Except(currentRoles);
+                var rolesToRemove = currentRoles.Except(userDto.Roles);
 
-            var addRoleResult = await _userManager.AddToRolesAsync(user, rolesToAdd);
-            if (!addRoleResult.Succeeded)
-                return BadRequest(new { message = "Failed to add roles", errors = addRoleResult.Errors });
+                var addRoleResult = await _userManager.AddToRolesAsync(user, rolesToAdd);
+                if (!addRoleResult.Succeeded)
+                {
+                    Log.Warning("Failed to add roles to user {UserId}. Errors: {Errors}", 
+                        userId, string.Join(", ", addRoleResult.Errors.Select(e => e.Description)));
+                    return BadRequest(new { message = "Failed to add roles", errors = addRoleResult.Errors });
+                }
 
-            var removeRoleResult = await _userManager.RemoveFromRolesAsync(user, rolesToRemove);
-            if (!removeRoleResult.Succeeded)
-                return BadRequest(new { message = "Failed to remove roles", errors = removeRoleResult.Errors });
+                var removeRoleResult = await _userManager.RemoveFromRolesAsync(user, rolesToRemove);
+                if (!removeRoleResult.Succeeded)
+                {
+                    Log.Warning("Failed to remove roles from user {UserId}. Errors: {Errors}", 
+                        userId, string.Join(", ", removeRoleResult.Errors.Select(e => e.Description)));
+                    return BadRequest(new { message = "Failed to remove roles", errors = removeRoleResult.Errors });
+                }
 
-            return Ok(new { message = "User updated successfully" });
+                Log.Information("User {UserId} updated successfully. New roles: {Roles}", userId, string.Join(", ", userDto.Roles));
+                return Ok(new { message = "User updated successfully" });
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error updating user {UserId}", userId);
+                return StatusCode(500, new { message = "An error occurred while updating user" });
+            }
         }
 
         [HttpDelete("users/delete-multiple")]
@@ -212,7 +281,11 @@ namespace SMS.Controllers
         {
             try
             {
+                Log.Information("Attempting to delete {Count} users", userIds.Count);
+                
                 var deletedCount = 0;
+                var deletedUsernames = new List<string>();
+                
                 foreach (var userId in userIds)
                 {
                     var user = await _userManager.FindByIdAsync(userId);
@@ -222,14 +295,28 @@ namespace SMS.Controllers
                         if (result.Succeeded)
                         {
                             deletedCount++;
+                            deletedUsernames.Add(user.UserName ?? userId);
+                            Log.Information("User {Username} (ID: {UserId}) deleted successfully", user.UserName, userId);
                         }
+                        else
+                        {
+                            Log.Warning("Failed to delete user {Username} (ID: {UserId}). Errors: {Errors}", 
+                                user.UserName, userId, string.Join(", ", result.Errors.Select(e => e.Description)));
+                        }
+                    }
+                    else
+                    {
+                        Log.Warning("Attempted to delete non-existent user {UserId}", userId);
                     }
                 }
 
+                Log.Information("Successfully deleted {DeletedCount} of {TotalCount} users: {Usernames}", 
+                    deletedCount, userIds.Count, string.Join(", ", deletedUsernames));
                 return Ok(new { message = $"Successfully deleted {deletedCount} users" });
             }
             catch (Exception ex)
             {
+                Log.Error(ex, "Error deleting users");
                 return StatusCode(500, new { message = "Internal server error", details = ex.Message });
             }
         }
@@ -239,12 +326,6 @@ namespace SMS.Controllers
             var roles = await _userManager.GetRolesAsync(user);
             var now = DateTime.Now;
             var expires = now.AddHours(1);
-
-            // Debug: Log the JWT key info
-            var jwtKey = _configuration["Jwt:Key"];
-            Console.WriteLine($"JWT Key for token generation (first 10 chars): {jwtKey?.Substring(0, Math.Min(10, jwtKey?.Length ?? 0))}...");
-            Console.WriteLine($"JWT Issuer: {_configuration["Jwt:Issuer"]}");
-            Console.WriteLine($"JWT Audience: {_configuration["Jwt:Audience"]}");
 
             var claims = new[]
             {
@@ -268,10 +349,9 @@ namespace SMS.Controllers
             );
 
             var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
-            Console.WriteLine($"Generated JWT token length: {tokenString.Length}");
+            Log.Debug("Generated JWT token for user {Username}, expires at {Expiration}", user.UserName, expires);
             
             return tokenString;
         }
     }
 }
-
