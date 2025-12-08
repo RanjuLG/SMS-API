@@ -4,6 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <EnableDefaultCompileItems>true</EnableDefaultCompileItems>
   </PropertyGroup>
 
   <ItemGroup>
@@ -33,6 +34,16 @@
   <ItemGroup>
     <Folder Include="Migrations\" />
     <Folder Include="Repositories\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Exclude test project files from being compiled or embedded -->
+    <Compile Remove="SMS.Tests\**" />
+    <Compile Remove="SMS-API.Tests\**" />
+    <EmbeddedResource Remove="SMS.Tests\**" />
+    <EmbeddedResource Remove="SMS-API.Tests\**" />
+    <None Remove="SMS.Tests\**" />
+    <None Remove="SMS-API.Tests\**" />
   </ItemGroup>
 
 </Project>

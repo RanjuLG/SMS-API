@@ -146,14 +146,14 @@ namespace SMS.Services
         {
             if (invoiceId <= 0)
             {
-                _logger.LogWarning($"Invalid Invoice ID: {invoiceId}");
+                _logger.LogWarning("Invalid Invoice ID: {InvoiceId}", invoiceId);
                 throw new ArgumentException("Invalid Invoice ID");
             }
 
             var invoice = _dbContext.GetById<Invoice>(invoiceId); // Using repository for fetching invoice
             if (invoice == null)
             {
-                _logger.LogWarning($"Invoice with ID {invoiceId} not found.");
+                _logger.LogWarning("Invoice with ID {InvoiceId} not found", invoiceId);
                 return;
             }
 
@@ -165,11 +165,11 @@ namespace SMS.Services
                     {
                         if (DeleteInitialInvoice(invoice))
                         {
-                            _logger.LogInformation($"Invoice {invoiceId} deleted successfully.");
+                            _logger.LogInformation("Invoice {InvoiceId} deleted successfully", invoiceId);
                         }
                         else
                         {
-                            _logger.LogWarning($"Failed to delete invoice {invoiceId}.");
+                            _logger.LogWarning("Failed to delete invoice {InvoiceId}", invoiceId);
                         }
                     }
 
@@ -178,7 +178,7 @@ namespace SMS.Services
                 catch (Exception ex)
                 {
                     _dbContext.RollbackTransaction(); // Rollback transaction in case of error
-                    _logger.LogError(ex, $"Error while deleting invoice {invoiceId}");
+                    _logger.LogError(ex, "Error while deleting invoice {InvoiceId}", invoiceId);
                     throw;
                 }
             }
@@ -192,7 +192,7 @@ namespace SMS.Services
             var transaction = _dbContext.GetById<Transaction>(initialInvoice.TransactionId);
             if (transaction == null)
             {
-                _logger.LogWarning($"Transaction with ID {initialInvoice.TransactionId} not found.");
+                _logger.LogWarning("Transaction with ID {TransactionId} not found", initialInvoice.TransactionId);
                 return false;
             }
 
@@ -245,7 +245,7 @@ namespace SMS.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error occurred while deleting invoice {initialInvoice.InvoiceId}");
+                _logger.LogError(ex, "Error occurred while deleting invoice {InvoiceId}", initialInvoice.InvoiceId);
                 throw;
             }
 

@@ -241,6 +241,24 @@ if (healthConfig.BackgroundServices.EnableCertificateMonitoring)
         app.UseSwaggerUI();
         app.UseDeveloperExceptionPage();
     }
+    else
+    {
+        // Use global error handling middleware in production
+        app.UseMiddleware<SMS.Middleware.GlobalErrorHandlingMiddleware>();
+    }
+
+    // Add Serilog request logging
+    app.UseSerilogRequestLogging(options =>
+    {
+        options.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms";
+        options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+        {
+            diagnosticContext.Set("RequestHost", httpContext.Request.Host.Value);
+            diagnosticContext.Set("RequestScheme", httpContext.Request.Scheme);
+            diagnosticContext.Set("UserAgent", httpContext.Request.Headers["User-Agent"].ToString());
+            diagnosticContext.Set("UserName", httpContext.User?.Identity?.Name ?? "Anonymous");
+        };
+    });
 
     app.UseCors("CorsPolicy");
     
