@@ -43,6 +43,22 @@ namespace SMS.Controllers
         }
 
         [HttpGet]
+        [Route("paginated")]
+        public async Task<ActionResult<PaginatedResponse<GetInvoiceDTO>>> GetInvoicesPaginated([FromQuery] InvoiceSearchRequest request)
+        {
+            try
+            {
+                var result = await _invoiceService.GetInvoicesPaginatedAsync(request);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception
+                return StatusCode(500, new { message = "Internal server error", details = ex.Message });
+            }
+        }
+
+        [HttpGet]
         [Route("")]
         public ActionResult<IEnumerable<GetInvoiceDTO>> GetInvoices([FromQuery] DateTimeRange dataParams)
         {
