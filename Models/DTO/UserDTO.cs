@@ -48,6 +48,15 @@ namespace SMS.Models.DTO
         public List<string> Roles { get; set; } = new List<string>();
     }
 
+    public class UpdateMyProfileDTO
+    {
+        [Required]
+        public string Username { get; set; } = string.Empty;
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = string.Empty;
+    }
+
     public class UserSearchRequest : PaginationRequest
     {
         public string? Role { get; set; }

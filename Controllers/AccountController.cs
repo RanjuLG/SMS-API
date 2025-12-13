@@ -321,6 +321,138 @@ namespace SMS.Controllers
             }
         }
 
+        [HttpGet("me")]
+        [Authorize]
+        public async Task<IActionResult> GetMyAccount()
+        {
+            try
+            {
+                var userName = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                
+                if (string.IsNullOrEmpty(userName))
+                {
+                    Log.Warning("GetMyAccount called with invalid user context");
+                    return Unauthorized(new { message = "User not authenticated" });
+                }
+
+                var user = await _userManager.FindByNameAsync(userName);
+
+                if (user == null)
+                {
+                    Log.Warning("GetMyAccount: User {UserId} not found", userName);
+                    return NotFound(new { message = "User not found" });
+                }
+
+                var roles = await _userManager.GetRolesAsync(user);
+                
+                var userDto = new GetUserDTO
+                {
+                    Id = user.Id,
+                    UserName = user.UserName ?? "",
+                    Email = user.Email ?? "",
+                    Roles = roles.ToList()
+                };
+
+                Log.Information("User {Username} retrieved their account information", user.UserName);
+                return Ok(userDto);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error retrieving current user account");
+                return StatusCode(500, new { message = "An error occurred while retrieving account information" });
+            }
+        }
+
+        [HttpPut("me")]
+        [Authorize]
+        public async Task<IActionResult> UpdateMyAccount([FromBody] UpdateMyProfileDTO profileDto)
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                
+                if (string.IsNullOrEmpty(userId))
+                {
+                    Log.Warning("UpdateMyAccount called with invalid user context");
+                    return Unauthorized(new { message = "User not authenticated" });
+                }
+
+                var user = await _userManager.FindByNameAsync(userId);
+                
+                if (user == null)
+                {
+                    Log.Warning("UpdateMyAccount: User {UserId} not found", userId);
+                    return NotFound(new { message = "User not found" });
+                }
+
+                Log.Information("User {Username} updating their account (new username: {NewUsername})", 
+                    user.UserName, profileDto.Username);
+
+                user.UserName = profileDto.Username;
+                user.Email = profileDto.Email;
+
+                var result = await _userManager.UpdateAsync(user);
+                
+                if (!result.Succeeded)
+                {
+                    Log.Warning("Failed to update account for user {UserId}. Errors: {Errors}", 
+                        userId, string.Join(", ", result.Errors.Select(e => e.Description)));
+                    return BadRequest(new { message = "Failed to update account", errors = result.Errors });
+                }
+
+                Log.Information("User {Username} updated their account successfully", user.UserName);
+                return Ok(new { message = "Account updated successfully" });
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error updating current user account");
+                return StatusCode(500, new { message = "An error occurred while updating account" });
+            }
+        }
+
+        [HttpDelete("me")]
+        [Authorize]
+        public async Task<IActionResult> DeactivateMyAccount()
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                
+                if (string.IsNullOrEmpty(userId))
+                {
+                    Log.Warning("DeactivateMyAccount called with invalid user context");
+                    return Unauthorized(new { message = "User not authenticated" });
+                }
+
+                var user = await _userManager.FindByIdAsync(userId);
+                
+                if (user == null)
+                {
+                    Log.Warning("DeactivateMyAccount: User {UserId} not found", userId);
+                    return NotFound(new { message = "User not found" });
+                }
+
+                Log.Information("User {Username} (ID: {UserId}) deactivating their account", user.UserName, userId);
+
+                var result = await _userManager.DeleteAsync(user);
+                
+                if (!result.Succeeded)
+                {
+                    Log.Warning("Failed to deactivate account for user {Username} (ID: {UserId}). Errors: {Errors}", 
+                        user.UserName, userId, string.Join(", ", result.Errors.Select(e => e.Description)));
+                    return BadRequest(new { message = "Failed to deactivate account", errors = result.Errors });
+                }
+
+                Log.Information("User {Username} (ID: {UserId}) deactivated their account successfully", user.UserName, userId);
+                return Ok(new { message = "Account deactivated successfully" });
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error deactivating current user account");
+                return StatusCode(500, new { message = "An error occurred while deactivating account" });
+            }
+        }
+
         private async Task<string> GenerateJwtToken(ApplicationUser user)
         {
             var roles = await _userManager.GetRolesAsync(user);
