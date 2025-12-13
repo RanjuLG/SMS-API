@@ -5,12 +5,12 @@ on:
     branches:
       - main
     paths:
-      - 'SMS-API/**' # Only trigger if backend changes
+      - '**' # Only trigger if backend changes
 
 env:
   AZURE_WEBAPP_NAME: sms-api
   DOTNET_VERSION: '8.0.x'
-  WORKING_DIRECTORY: 'SMS-API' # Path to the .csproj
+  WORKING_DIRECTORY: '.' # Path to the .csproj
 
 jobs:
   build-and-deploy:
