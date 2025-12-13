@@ -2,6 +2,7 @@
 using SMS.Models;
 using SMS.Models.DTO;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace SMS.Interfaces
 {
@@ -9,6 +10,7 @@ namespace SMS.Interfaces
     {
         IList<Invoice> GetAllInvoices();
         IList<GetInvoiceDTO> GetInvoices(IDateTimeRange dateTimeRange);
+        Task<PaginatedResponse<GetInvoiceDTO>> GetInvoicesPaginatedAsync(InvoiceSearchRequest request);
         public GetInvoiceDTO GetInvoiceById(int invoiceId);
         void CreateInvoice(Invoice invoice);
         void UpdateInvoice(Invoice invoice);

@@ -79,6 +79,151 @@ namespace SMS.Services
             return invoices;
         }
 
+        public async Task<PaginatedResponse<GetInvoiceDTO>> GetInvoicesPaginatedAsync(InvoiceSearchRequest request)
+        {
+            var query = _dbContext.Get<Invoice>(i => i.DeletedAt == null)
+                .Include(i => i.Transaction)
+                    .ThenInclude(t => t.Customer)
+                .AsQueryable();
+
+            // Apply date range filter
+            if (request.From != default && request.To != default)
+            {
+                query = query.Where(i => i.CreatedAt >= request.From && i.CreatedAt <= request.To);
+            }
+
+            // Apply customer NIC filter
+            if (!string.IsNullOrEmpty(request.CustomerNIC))
+            {
+                query = query.Where(i => i.Transaction != null && 
+                    i.Transaction.Customer != null && 
+                    i.Transaction.Customer.CustomerNIC.Contains(request.CustomerNIC));
+            }
+
+            // Apply status filter
+            if (request.Status.HasValue)
+            {
+                query = query.Where(i => i.Status == request.Status.Value);
+            }
+
+            // Apply invoice type filter
+            if (request.InvoiceTypeId.HasValue)
+            {
+                query = query.Where(i => (int)i.InvoiceTypeId == request.InvoiceTypeId.Value);
+            }
+
+            // Apply search filter (InvoiceNo, CustomerNIC)
+            if (!string.IsNullOrEmpty(request.Search))
+            {
+                query = query.Where(i => 
+                    i.InvoiceNo.Contains(request.Search) ||
+                    (i.Transaction != null && i.Transaction.Customer != null && 
+                        i.Transaction.Customer.CustomerNIC.Contains(request.Search)));
+            }
+
+            // Apply sorting
+            query = ApplySorting(query, request.SortBy, request.SortOrder);
+
+            // Get total count before pagination
+            var totalItems = await query.CountAsync();
+
+            // Apply pagination
+            var invoices = await query
+                .Skip((request.Page - 1) * request.PageSize)
+                .Take(request.PageSize)
+                .ToListAsync();
+
+            // Map to DTOs
+            var invoiceDTOs = new List<GetInvoiceDTO>();
+            var dateTimeRange = new Generic.DateTimeRange { From = request.From, To = request.To };
+            var loans = _loanService.GetAllLoans(dateTimeRange);
+
+            foreach (var invoice in invoices)
+            {
+                var transaction = invoice.Transaction ?? _transactionService.GetTransactionById(invoice.TransactionId);
+
+                if (transaction == null)
+                {
+                    continue;
+                }
+
+                var invoiceDTO = new GetInvoiceDTO
+                {
+                    InvoiceId = invoice.InvoiceId,
+                    InvoiceTypeId = (int)invoice.InvoiceTypeId,
+                    InvoiceNo = invoice.InvoiceNo,
+                    TransactionId = transaction.TransactionId,
+                    CustomerNIC = transaction.Customer?.CustomerNIC,
+                    CustomerName = transaction.Customer?.CustomerName,
+                    TotalAmount = transaction.TotalAmount,
+                    DateGenerated = invoice.DateGenerated,
+                    Status = invoice.Status,
+                    LoanPeriod = (int)invoice.InvoiceTypeId == (int)InvoiceType.InitialPawnInvoice 
+                        ? loans.Where(t => t.TransactionId == invoice.TransactionId).FirstOrDefault()?.LoanPeriod?.Period 
+                        : null,
+                };
+
+                invoiceDTOs.Add(invoiceDTO);
+            }
+
+            // Create pagination metadata
+            var totalPages = (int)Math.Ceiling((double)totalItems / request.PageSize);
+            var paginationMetadata = new PaginationMetadata
+            {
+                CurrentPage = request.Page,
+                PageSize = request.PageSize,
+                TotalItems = totalItems,
+                TotalPages = totalPages,
+                HasNextPage = request.Page < totalPages,
+                HasPreviousPage = request.Page > 1
+            };
+
+            // Create filter metadata
+            var filterMetadata = new FilterMetadata
+            {
+                Search = request.Search,
+                SortBy = request.SortBy,
+                SortOrder = request.SortOrder,
+                AppliedFilters = new 
+                { 
+                    request.From, 
+                    request.To, 
+                    request.CustomerNIC, 
+                    request.Status, 
+                    request.InvoiceTypeId 
+                }
+            };
+
+            return new PaginatedResponse<GetInvoiceDTO>
+            {
+                Data = invoiceDTOs,
+                Pagination = paginationMetadata,
+                Filters = filterMetadata
+            };
+        }
+
+        private IQueryable<Invoice> ApplySorting(IQueryable<Invoice> query, string? sortBy, string? sortOrder)
+        {
+            var isDescending = sortOrder?.ToLower() == "desc";
+
+            return sortBy?.ToLower() switch
+            {
+                "invoiceno" => isDescending 
+                    ? query.OrderByDescending(i => i.InvoiceNo) 
+                    : query.OrderBy(i => i.InvoiceNo),
+                "dategenerated" => isDescending 
+                    ? query.OrderByDescending(i => i.DateGenerated) 
+                    : query.OrderBy(i => i.DateGenerated),
+                "status" => isDescending 
+                    ? query.OrderByDescending(i => i.Status) 
+                    : query.OrderBy(i => i.Status),
+                "totalamount" => isDescending 
+                    ? query.OrderByDescending(i => i.Transaction.TotalAmount) 
+                    : query.OrderBy(i => i.Transaction.TotalAmount),
+                _ => query.OrderByDescending(i => i.CreatedAt) // Default sort by creation date
+            };
+        }
+
         public GetInvoiceDTO GetInvoiceById(int invoiceId)
         {
             var invoice_ = _dbContext.GetById<Invoice>(invoiceId);
