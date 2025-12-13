@@ -13,20 +13,34 @@ using System.Text;
 using static SMS.DBContext.ApplicationDbContext;
 using Serilog;
 
-// Configure Serilog early
+// Configure Serilog early with environment variable support
+var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+var configuration = new ConfigurationBuilder()
+    .SetBasePath(Directory.GetCurrentDirectory())
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .AddJsonFile($"appsettings.{environment}.json", optional: true, reloadOnChange: true)
+    .AddEnvironmentVariables(prefix: "SMS_") // Add environment variables with SMS_ prefix
+    .Build();
+
 Log.Logger = new LoggerConfiguration()
-    .ReadFrom.Configuration(new ConfigurationBuilder()
-        .SetBasePath(Directory.GetCurrentDirectory())
-        .AddJsonFile("appsettings.json")
-        .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json", optional: true)
-        .Build())
+    .ReadFrom.Configuration(configuration)
     .CreateLogger();
 
 try
 {
     Log.Information("Starting SMS API application");
+    Log.Information("Environment: {Environment}", environment);
 
     var builder = WebApplication.CreateBuilder(args);
+
+    // Add environment variables with SMS_ prefix to configuration
+    builder.Configuration.AddEnvironmentVariables(prefix: "SMS_");
+    
+    // Log configuration source for debugging (only log that env vars are being used, not values)
+    var connectionStringSource = builder.Configuration.GetConnectionString("MasterDatabase") != null 
+        ? "Configuration loaded" 
+        : "Configuration NOT found";
+    Log.Information("Database configuration: {Status}", connectionStringSource);
 
     // Configure Serilog
     builder.Host.UseSerilog();

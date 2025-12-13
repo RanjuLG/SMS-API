@@ -361,3 +361,44 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# SMS API Specific - Sensitive Configuration Files
+# Keep environment-specific settings out of source control
+appsettings.Development.json
+appsettings.Staging.json
+# Note: appsettings.Production.json is kept as template with empty values
+# Actual production values should be in environment variables
+
+# Local environment variable files
+.env
+.env.local
+.env.development
+.env.production
+.env.staging
+
+# Sensitive configuration overrides
+appsettings.*.local.json
+appsettings.Local.json
+
+# Log files (already covered above but being explicit)
+logs/
+*.log
+
+# User secrets (if used)
+secrets.json
+
+# Database files (if using LocalDB for development)
+*.mdf
+*.ldf
+
+# Uploaded files (NIC images, etc.)
+uploads/
+wwwroot/uploads/
+
+# SSL certificates
+*.pfx
+*.p12
+*.cer
+*.crt
+*.key
+*.pem
