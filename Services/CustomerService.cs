@@ -163,13 +163,13 @@ namespace SMS.Services
                     
                     _dbContext.Create<Customer>(customer);
                     _dbContext.Save();
-                    _dbContext.CommitTransaction();
-                    
+                    dbTransaction.Commit();
+
                     Log.Information("Customer created successfully with ID: {CustomerId}", customer.CustomerId);
                 }
                 catch (Exception ex)
                 {
-                    _dbContext.RollbackTransaction();
+                    dbTransaction.Rollback();
                     Log.Error(ex, "Error creating customer: {CustomerName}, NIC: {CustomerNIC}", 
                         customer.CustomerName, customer.CustomerNIC);
                     throw;
@@ -189,13 +189,13 @@ namespace SMS.Services
                     customer.UpdatedAt = DateTime.Now;
                     _dbContext.Update<Customer>(customer);
                     _dbContext.Save();
-                    _dbContext.CommitTransaction();
+                    dbTransaction.Commit();
                     
                     Log.Information("Customer {CustomerId} updated successfully", customer.CustomerId);
                 }
                 catch (Exception ex)
                 {
-                    _dbContext.RollbackTransaction();
+                    dbTransaction.Rollback();
                     Log.Error(ex, "Error updating customer ID: {CustomerId}", customer.CustomerId);
                     throw;
                 }
@@ -224,11 +224,11 @@ namespace SMS.Services
                         Log.Warning("Attempted to delete non-existent customer ID: {CustomerId}", customerId);
                     }
                     
-                    _dbContext.CommitTransaction();
+                    dbTransaction.Commit();
                 }
                 catch (Exception ex)
                 {
-                    _dbContext.RollbackTransaction();
+                    dbTransaction.Rollback();
                     Log.Error(ex, "Error deleting customer ID: {CustomerId}", customerId);
                     throw;
                 }
@@ -255,14 +255,14 @@ namespace SMS.Services
                     }
                     
                     _dbContext.Save();
-                    _dbContext.CommitTransaction();
+                    dbTransaction.Commit();
                     
                     Log.Information("Successfully soft deleted {DeletedCount} of {RequestedCount} customers", 
                         customers.Count, ids.Count);
                 }
                 catch (Exception ex)
                 {
-                    _dbContext.RollbackTransaction();
+                    dbTransaction.Rollback();
                     Log.Error(ex, "Error deleting multiple customers");
                     throw;
                 }

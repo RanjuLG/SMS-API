@@ -77,11 +77,11 @@ namespace SMS.Services
                 {
                     _dbContext.Create<Loan>(loanDto);
                     _dbContext.Save();
-                    _dbContext.CommitTransaction();
+                    dbTransaction.Commit();
                 }
                 catch (Exception)
                 {
-                    _dbContext.RollbackTransaction();
+                    dbTransaction.Rollback();
                     throw;
                 }
             }
@@ -106,11 +106,11 @@ namespace SMS.Services
                         _dbContext.Update<Loan>(loan);
                         _dbContext.Save();
                     }
-                    _dbContext.CommitTransaction();
+                    dbTransaction.Commit();
                 }
                 catch (Exception)
                 {
-                    _dbContext.RollbackTransaction();
+                    dbTransaction.Rollback();
                     throw;
                 }
             }
@@ -129,11 +129,11 @@ namespace SMS.Services
                         _dbContext.Update<Loan>(loan);
                         _dbContext.Save();
                     }
-                    _dbContext.CommitTransaction();
+                    dbTransaction.Commit();
                 }
                 catch (Exception)
                 {
-                    _dbContext.RollbackTransaction();
+                    dbTransaction.Rollback();
                     throw;
                 }
             }

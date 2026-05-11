@@ -112,14 +112,14 @@ namespace SMS.Business
                     }
 
                     // Step 3: Commit the transaction and return the Created Invoice ID
-                    _dbContext.CommitTransaction();
+                    dbTransaction.Commit();
                     var createdInvoice = _invoiceService.GetLastInvoice();
 
                     return new OkObjectResult(createdInvoice.InvoiceId);
                 }
                 catch (Exception ex)
                 {
-                    _dbContext.RollbackTransaction();
+                    dbTransaction.Rollback();
                     _logger.LogError(ex, "An error occurred while processing the invoice.");
                     return new StatusCodeResult(500);
                 }

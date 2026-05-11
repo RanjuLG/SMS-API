@@ -258,11 +258,11 @@ namespace SMS.Services
                 {
                     _dbContext.Create(invoice);
                     _dbContext.Save();
-                    _dbContext.CommitTransaction();
+                    dbTransaction.Commit();
                 }
                 catch (Exception)
                 {
-                    _dbContext.RollbackTransaction();
+                    dbTransaction.Rollback();
                     throw;
                 }
             }
@@ -277,11 +277,11 @@ namespace SMS.Services
                     invoice.UpdatedAt = DateTime.Now;
                     _dbContext.Update(invoice);
                     _dbContext.Save();
-                    _dbContext.CommitTransaction();
+                    dbTransaction.Commit();
                 }
                 catch (Exception)
                 {
-                    _dbContext.RollbackTransaction();
+                    dbTransaction.Rollback();
                     throw;
                 }
             }
@@ -318,11 +318,11 @@ namespace SMS.Services
                         }
                     }
 
-                    _dbContext.CommitTransaction(); // Commit transaction
+                    dbTransaction.Commit(); // Commit transaction
                 }
                 catch (Exception ex)
                 {
-                    _dbContext.RollbackTransaction(); // Rollback transaction in case of error
+                    dbTransaction.Rollback(); // Rollback transaction in case of error
                     _logger.LogError(ex, "Error while deleting invoice {InvoiceId}", invoiceId);
                     throw;
                 }

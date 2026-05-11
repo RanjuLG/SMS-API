@@ -41,11 +41,11 @@ namespace SMS.Services
                 {
                     _dbContext.Create<TransactionItem>(transactionItem);
                     _dbContext.Save();
-                    _dbContext.CommitTransaction();
+                    dbTransaction.Commit();
                 }
                 catch (Exception)
                 {
-                    _dbContext.RollbackTransaction();
+                    dbTransaction.Rollback();
                     throw;
                 }
             }
@@ -59,11 +59,11 @@ namespace SMS.Services
                 {
                     _dbContext.Update<TransactionItem>(transactionItem);
                     _dbContext.Save();
-                    _dbContext.CommitTransaction();
+                    dbTransaction.Commit();
                 }
                 catch (Exception)
                 {
-                    _dbContext.RollbackTransaction();
+                    dbTransaction.Rollback();
                     throw;
                 }
             }
@@ -82,11 +82,11 @@ namespace SMS.Services
                         _dbContext.Update<TransactionItem>(transactionItem);
                         _dbContext.Save();
                     }
-                    _dbContext.CommitTransaction();
+                    dbTransaction.Commit();
                 }
                 catch (Exception)
                 {
-                    _dbContext.RollbackTransaction();
+                    dbTransaction.Rollback();
                     throw;
                 }
             }
@@ -105,11 +105,11 @@ namespace SMS.Services
                         _dbContext.Update<TransactionItem>(transactionItem);
                     }
                     _dbContext.Save();
-                    _dbContext.CommitTransaction();
+                    dbTransaction.Commit();
                 }
                 catch (Exception)
                 {
-                    _dbContext.RollbackTransaction();
+                    dbTransaction.Rollback();
                     throw;
                 }
             }

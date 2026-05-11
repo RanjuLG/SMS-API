@@ -206,13 +206,13 @@ namespace SMS.Services
                     
                     _dbContext.Create<Item>(item);
                     _dbContext.Save();
-                    _dbContext.CommitTransaction();
+                    dbTransaction.Commit();
                     
                     Log.Information("Item created successfully with ID: {ItemId}", item.ItemId);
                 }
                 catch (Exception ex)
                 {
-                    _dbContext.RollbackTransaction();
+                    dbTransaction.Rollback();
                     Log.Error(ex, "Error creating item: {ItemDescription}", item.ItemDescription);
                     throw;
                 }
@@ -231,13 +231,13 @@ namespace SMS.Services
                     item.UpdatedAt = DateTime.Now;
                     _dbContext.Update<Item>(item);
                     _dbContext.Save();
-                    _dbContext.CommitTransaction();
+                    dbTransaction.Commit();
                     
                     Log.Information("Item {ItemId} updated successfully", item.ItemId);
                 }
                 catch (Exception ex)
                 {
-                    _dbContext.RollbackTransaction();
+                    dbTransaction.Rollback();
                     Log.Error(ex, "Error updating item ID: {ItemId}", item.ItemId);
                     throw;
                 }
@@ -266,11 +266,11 @@ namespace SMS.Services
                         Log.Warning("Attempted to delete non-existent item ID: {ItemId}", itemId);
                     }
                     
-                    _dbContext.CommitTransaction();
+                    dbTransaction.Commit();
                 }
                 catch (Exception ex)
                 {
-                    _dbContext.RollbackTransaction();
+                    dbTransaction.Rollback();
                     Log.Error(ex, "Error deleting item ID: {ItemId}", itemId);
                     throw;
                 }
@@ -295,14 +295,14 @@ namespace SMS.Services
                             item.ItemDescription, item.ItemId);
                     }
                     _dbContext.Save();
-                    _dbContext.CommitTransaction();
+                    dbTransaction.Commit();
                     
                     Log.Information("Successfully soft deleted {DeletedCount} of {RequestedCount} items", 
                         items.Count, ids.Count);
                 }
                 catch (Exception ex)
                 {
-                    _dbContext.RollbackTransaction();
+                    dbTransaction.Rollback();
                     Log.Error(ex, "Error deleting multiple items");
                     throw;
                 }
