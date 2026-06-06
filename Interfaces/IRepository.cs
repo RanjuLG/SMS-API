@@ -1,8 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore.Storage;
-using SMS.Repositories;
 using System.Collections.Generic;
-using System.Linq.Expressions;
 using System.Threading.Tasks;
+using System.Linq.Expressions;
 
 namespace SMS.Interfaces
 {
@@ -32,7 +31,7 @@ namespace SMS.Interfaces
 
         IList<TEntity> GetDataSqlQuery<TEntity>(string query) where TEntity : class;
 
-        TransactionWrapper CreateTransaction();
+        IDbContextTransaction CreateTransaction();
 
         void RollbackTransaction();
 

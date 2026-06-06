@@ -17,12 +17,9 @@ namespace SMS.Repositories
         {
         }
 
-        public TransactionWrapper CreateTransaction()
+        public IDbContextTransaction CreateTransaction()
         {
-            if (_context.Database.CurrentTransaction != null)
-                return new TransactionWrapper(_context.Database.CurrentTransaction, isOwner: false);
-
-            return new TransactionWrapper(_context.Database.BeginTransaction(), isOwner: true);
+            return _context.Database.BeginTransaction();
         }
 
         public void RollbackTransaction()

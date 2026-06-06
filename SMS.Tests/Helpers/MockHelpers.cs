@@ -7,7 +7,6 @@ using SMS.Interfaces;
 using SMS.Models;
 using SMS.Enums;
 using Microsoft.EntityFrameworkCore.Storage;
-using SMS.Repositories;
 
 namespace SMS.Tests.Helpers
 {
@@ -26,7 +25,7 @@ namespace SMS.Tests.Helpers
             var mockRepo = new Mock<IRepository>();
 
             // Setup basic transaction methods
-            mockRepo.Setup(r => r.CreateTransaction()).Returns(Mock.Of<TransactionWrapper>());
+            mockRepo.Setup(r => r.CreateTransaction()).Returns(Mock.Of<IDbContextTransaction>());
             mockRepo.Setup(r => r.CommitTransaction());
             mockRepo.Setup(r => r.RollbackTransaction());
             mockRepo.Setup(r => r.Save());
